@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Raw Electric Nation CSVs are 1.1-1.5 GB each: over GitHub's 100 MB file limit.
+# Keep them locally only; the processed sessions table (data/processed/) IS committed.
+# To rebuild it: put the CSVs in data/raw/electric_nation/ and run
+#   python -m v2g.ingest.electric_nation
+data/raw/**/*.csv
+*.egg-info/
+.DS_Store

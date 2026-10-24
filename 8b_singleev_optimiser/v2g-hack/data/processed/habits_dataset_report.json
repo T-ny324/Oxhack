@@ -1,0 +1,37 @@
+{
+  "config": {
+    "tz": "Europe/London",
+    "max_away_days": 14,
+    "test_vehicle_frac": 0.2,
+    "val_week_frac": 0.2,
+    "seed": 0,
+    "asym_weight_w": 9.0,
+    "shortfall_tol_kwh": 1.0,
+    "shortfall_tol_h": 0.25
+  },
+  "rows": 85288,
+  "test": {
+    "rows": 15687,
+    "vehicles": 63,
+    "weeks": 90,
+    "first_day": "2017-03-27",
+    "last_day": "2018-12-16",
+    "plug_in_rate": 0.463
+  },
+  "train": {
+    "rows": 54936,
+    "vehicles": 252,
+    "weeks": 78,
+    "first_day": "2017-03-27",
+    "last_day": "2018-09-23",
+    "plug_in_rate": 0.527
+  },
+  "val": {
+    "rows": 14665,
+    "vehicles": 208,
+    "weeks": 12,
+    "first_day": "2018-09-24",
+    "last_day": "2018-12-16",
+    "plug_in_rate": 0.552
+  }
+}

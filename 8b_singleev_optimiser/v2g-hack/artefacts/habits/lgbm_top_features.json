@@ -1,0 +1,30 @@
+{
+  "y_plugin_h": {
+    "pw_plugin_h_median": 2336.0,
+    "lw_plugin_h": 1872.0,
+    "pw_plugin_h_std": 880.0,
+    "pw_plugin_h_mean": 789.0,
+    "pw_plugout_h_median": 542.0
+  },
+  "y_plugout_h": {
+    "pw_plugin_h_median": 3096.0,
+    "pw_plugout_h_mean": 2155.0,
+    "pw_plugout_h_median": 1510.0,
+    "pw_plugin_h_mean": 1070.0,
+    "pw_plugout_h_std": 692.0
+  },
+  "y_trip_kwh": {
+    "pw_trip_kwh_max": 4066.0,
+    "pw_energy_kwh": 1583.0,
+    "pw_trip_kwh_mean": 1280.0,
+    "pw_trip_kwh_std": 1025.0,
+    "pw_trip_kwh_median": 776.0
+  },
+  "classifier": {
+    "pw_plugin_days": 42343.0,
+    "pw_sessions": 23324.0,
+    "pw_weekday_plugin_days": 6442.0,
+    "pw_trip_kwh_std": 6397.0,
+    "lw_trip_kwh": 5847.0
+  }
+}

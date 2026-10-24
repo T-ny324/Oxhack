@@ -1,0 +1,14 @@
+[project]
+name = "v2g-hack"
+version = "0.1.0"
+requires-python = ">=3.11"
+# lightgbm on macOS also needs the OpenMP runtime: `brew install libomp`
+dependencies = ["numpy", "pandas", "scipy>=1.9", "pydantic>=2", "pyyaml", "pyarrow", "matplotlib",
+                "scikit-learn", "lightgbm"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+testpaths = ["tests"]
