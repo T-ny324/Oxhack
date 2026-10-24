@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: install format lint test data data-prices all
+.PHONY: install format lint test data data-prices forecast-naive forecast-naive-smoke all
 
 install:
 	$(PYTHON) -m pip install -U pip
@@ -24,5 +24,14 @@ data-prices:
 	$(PYTHON) -m v2g.ingest.elexon_mid --start $(PRICES_START) --end $(PRICES_END) --provider $(PRICES_PROVIDER)
 
 data: data-prices
+
+# --- Forecasts (stage S3). Contract parquet: artefacts/forecasts/price_quantiles.parquet
+forecast-naive:
+	$(PYTHON) -m v2g.forecast.baselines --window backtest
+	$(PYTHON) -m v2g.forecast.evaluate --window backtest
+
+forecast-naive-smoke:
+	$(PYTHON) -m v2g.forecast.baselines --window smoke --out artefacts/forecasts/price_quantiles_smoke.parquet
+	$(PYTHON) -m v2g.forecast.evaluate --window smoke --forecasts artefacts/forecasts/price_quantiles_smoke.parquet --out artefacts/forecasts/eval_naive_smoke.csv
 
 all: test
