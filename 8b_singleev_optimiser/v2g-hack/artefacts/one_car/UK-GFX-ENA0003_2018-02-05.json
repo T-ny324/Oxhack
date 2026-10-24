@@ -1,0 +1,31 @@
+{
+  "vehicle_id": "UK-GFX-ENA0003",
+  "week": "2018-02-05",
+  "prices": "SYNTHETIC",
+  "summary": {
+    "normal charger": {
+      "saving_gbp_vs_normal": 0.0,
+      "bill_gbp": 3.1,
+      "export_kwh": 0.0,
+      "departures": 5,
+      "shortfalls_over_1kwh": 0,
+      "worst_shortfall_kwh": 0.0
+    },
+    "habits model": {
+      "saving_gbp_vs_normal": 5.65,
+      "bill_gbp": -2.56,
+      "export_kwh": 105.9,
+      "departures": 5,
+      "shortfalls_over_1kwh": 0,
+      "worst_shortfall_kwh": 0.0
+    },
+    "perfect knowledge": {
+      "saving_gbp_vs_normal": 7.84,
+      "bill_gbp": -4.74,
+      "export_kwh": 155.4,
+      "departures": 5,
+      "shortfalls_over_1kwh": 0,
+      "worst_shortfall_kwh": 0.0
+    }
+  }
+}
