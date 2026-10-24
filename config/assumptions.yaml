@@ -1,0 +1,30 @@
+region: gb
+currency: gbp
+currency_symbol: "£"
+settlement_period_minutes: 30
+dt_h: 0.5
+years: [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036]
+scenarios:
+  base:
+    ev_stock_2026: 2000000
+    ev_stock_2036: 36000000
+  low:
+    ev_stock_2026: 1500000
+    ev_stock_2036: 25000000
+  high:
+    ev_stock_2026: 3000000
+    ev_stock_2036: 45000000
+battery:
+  capacity_kwh: 60.0
+  soc_min: 0.2
+  soc_max: 0.9
+  max_cycles: 3000
+  degradation_cost_per_kwh: 0.08
+participation:
+  base: 0.2
+  low: 0.1
+  high: 0.4
+price_policy:
+  import_fee_multiplier: 1.0
+  export_fee_multiplier: 0.9
+  double_fee_policy: false
