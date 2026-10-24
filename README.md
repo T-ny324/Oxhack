@@ -31,9 +31,14 @@ The repo is structured around the logic chain:
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -e .
+pip install -e ".[dev]"
 make all
+make data-prices   # GB wholesale prices (Elexon MID) -> data/processed/prices.parquet
 ```
+
+Data ingest lives in `src/v2g/ingest/` (see its README). Raw API responses are
+cached under `data/raw/` and cleaned tables written to `data/processed/`; both
+are gitignored.
 
 ## Core contract
 

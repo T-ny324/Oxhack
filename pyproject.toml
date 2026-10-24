@@ -7,6 +7,8 @@ requires-python = ">=3.10"
 dependencies = [
   "pandas>=2.0",
   "numpy>=1.26",
+  "pyarrow>=14.0",
+  "requests>=2.31",
   "pyyaml>=6.0",
   "pydantic>=2.0",
   "streamlit>=1.30",
@@ -15,3 +17,14 @@ dependencies = [
   "lightgbm>=4.0",
   "salib>=1.8",
 ]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "black>=24.0",
+  "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
