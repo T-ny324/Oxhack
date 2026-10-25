@@ -101,6 +101,9 @@ class LearConfig(BaseModel):
     recalibrate_every_days: int = Field(ge=1)
     impute_max_gap_periods: int = Field(ge=0)
     lambda_selection: Literal["aic", "bic", "cv"]
+    lambda_selection_by_model: dict[str, Literal["aic", "bic", "cv"]] = Field(
+        default_factory=dict
+    )
     n_jobs: int
     write_component_models: bool
 
@@ -112,6 +115,26 @@ class LearConfig(BaseModel):
                 f"calibration_windows_days must be positive, unique and increasing, got {windows}"
             )
         return windows
+
+
+class ExogConfig(BaseModel):
+    """Exogenous-feature settings for stage S3 (``forecast.exog``)."""
+
+    model_config = ConfigDict(extra="forbid")
+    enabled_for_models: list[str]
+    variables: list[str] = Field(min_length=1)
+    exog_known_lag_minutes: int = Field(ge=0)
+    include_residual_load: bool
+    sources: list[str] | None = (
+        None  # processed exog parquet stems to load; None = every file in the exog dir
+    )
+
+    @field_validator("variables")
+    @classmethod
+    def _unique(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError(f"exog.variables has duplicates: {value}")
+        return value
 
 
 class ForecastConfig(BaseModel):
@@ -127,6 +150,8 @@ class ForecastConfig(BaseModel):
     quantile_history_days: int = Field(gt=0)
     lead_buckets_h: list[float] = Field(min_length=2)
     lear: LearConfig
+    exog: ExogConfig
+    validation_window: DateWindow
 
     @field_validator("issue_local_time")
     @classmethod

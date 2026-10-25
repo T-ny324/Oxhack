@@ -123,6 +123,10 @@ def coverage_by_month(out: pd.DataFrame, cfg: ExogIngestConfig) -> pd.Series:
     day_start_utc = local_day.dt.tz_convert("UTC")
     before = out["forecast_made_utc"] < day_start_utc
     per_day = before.groupby(local_day.dt.date).any()
+    all_days = pd.date_range(min(per_day.index), max(per_day.index), freq="D").date
+    per_day = per_day.reindex(
+        all_days, fill_value=False
+    )  # days whose rows were all dropped count as uncovered
     return per_day.groupby(pd.to_datetime(per_day.index).to_period("M")).mean()
 
 

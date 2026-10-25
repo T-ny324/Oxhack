@@ -11,8 +11,14 @@ For an issue on local date ``d`` (10:00 local), the feature vector is:
 * ``dmK_sNN`` for K in (1, 2, 3, 6, 7): the full 48-slot rows of days d-K from
   the day matrix. d-6 is tomorrow's weekday one week earlier, d-7 is today's.
 * ``dow_*``: one-hot day of week of ``d`` (the block fixes the target weekday).
-* ``exog_*``: optional exogenous forecasts (NESO wind/solar/demand) for the
-  target days, see the TODO in :func:`build_features`. None contributes nothing.
+* exogenous forecast vintages (optional): for each configured series, local
+  day d and d+1 x 48 slots from :meth:`v2g.forecast.exog.ExogVintages.slot_layout`,
+  i.e. the latest forecast published before the issue (minus the configured
+  lag) for every target period. Names like ``wind_da_d1_s34``. They are
+  z-scored on the training window only (no asinh, which is for prices);
+  training rows with a missing exogenous value are dropped and at prediction
+  time a missing value takes the training mean (zero after standardising).
+  ``exog=None`` contributes nothing.
 
 Models: one lasso per (block, slot). Block A = targets on ``d`` at slots from
 the issue slot (20 = 10:00) to 47; Block B = slots 0..47 of ``d + 1``.
@@ -61,13 +67,13 @@ def model_keys(cfg: ForecastConfig) -> list[tuple[str, int]]:
 
 
 def feature_names(
-    cfg: ForecastConfig, exog_columns: list[str] | None = None
+    cfg: ForecastConfig, exog_names: list[str] | None = None
 ) -> list[str]:
     names = [f"today_s{s:02d}" for s in range(last_known_slot(cfg) + 1)]
     for k in PAST_DAYS:
         names += [f"dm{k}_s{s:02d}" for s in range(SLOTS)]
     names += [f"dow_{n}" for n in DAY_NAMES]
-    names += [f"exog_{c}" for c in (exog_columns or [])]
+    names += list(exog_names or [])
     return names
 
 
@@ -116,9 +122,13 @@ def build_features(
     day_matrix: pd.DataFrame,
     prices_raw: pd.Series,
     cfg: ForecastConfig,
-    exog: pd.DataFrame | None = None,
+    exog=None,
 ) -> tuple[np.ndarray, list[str]]:
-    """Feature vector and names for one issue. Uses only prices with start <= known_cutoff(issue)."""
+    """Feature vector and names for one issue. Uses only prices with start <= known_cutoff(issue).
+
+    ``exog`` may be an :class:`~v2g.forecast.exog.ExogVintages` or a raw vintage
+    table (a DataFrame WITH ``forecast_made_utc``); anything else is refused.
+    """
     issue_utc = pd.Timestamp(issue_utc).tz_convert("UTC")
     d = issue_utc.tz_convert(tzinfo(cfg)).date()
     parts = [today_block(issue_utc, prices_raw, cfg)]
@@ -133,13 +143,23 @@ def build_features(
     dow = np.zeros(len(DAY_NAMES))
     dow[d.weekday()] = 1.0
     parts.append(dow)
-    exog_columns: list[str] = []
+    exog_names: list[str] = []
     if exog is not None:
-        # TODO(NESO): pass target-day wind/solar/demand forecasts here, indexed by issue_time_utc and
-        # filtered on forecast-made time <= issue time, one column per (variable, target slot).
-        exog_columns = list(exog.columns)
-        parts.append(exog.loc[issue_utc].to_numpy(dtype="float64"))
-    return np.concatenate(parts), feature_names(cfg, exog_columns)
+        from v2g.forecast.exog import (
+            ExogVintages,
+        )  # local import: exog depends on lear_data
+
+        if isinstance(exog, pd.DataFrame):
+            exog = ExogVintages(
+                exog, cfg
+            )  # raises unless the table carries forecast_made_utc vintages
+        elif not isinstance(exog, ExogVintages):
+            raise TypeError(
+                "exog must be an ExogVintages or a vintage DataFrame with forecast_made_utc"
+            )
+        exog_names = list(exog.feature_names)
+        parts.append(exog.slot_layout(issue_utc))
+    return np.concatenate(parts), feature_names(cfg, exog_names)
 
 
 def training_targets(

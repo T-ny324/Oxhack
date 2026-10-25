@@ -43,6 +43,14 @@ def make_cfg(**lear_overrides) -> ForecastConfig:
         quantile_history_days=14,
         lead_buckets_h=[0, 6, 12, 24, 40],
         lear=lear_cfg,
+        exog={
+            "enabled_for_models": ["lear_x"],
+            "variables": ["wind_da_mw", "demand_da_mw"],
+            "exog_known_lag_minutes": 0,
+            "include_residual_load": True,
+            "sources": None,
+        },
+        validation_window={"start": "2025-04-01", "end": "2025-09-30"},
     )
 
 

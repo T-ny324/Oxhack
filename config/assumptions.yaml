@@ -49,6 +49,18 @@ forecast:
     lambda_selection: aic              # aic | bic | cv
     n_jobs: -1
     write_component_models: false      # also write lear_w56, lear_w84, ... for diagnostics
+    # Criterion per model, frozen after validation on validation_window (see src/v2g/forecast/README.md).
+    lambda_selection_by_model: {}
+  exog:
+    enabled_for_models: [lear_x]
+    # Exogenous forecast vintages used as features (see data/processed/exog/). wind_neso_da_mw is
+    # ingested but excluded: its vintage stamps are unreliable from late 2025.
+    variables: [wind_da_mw, embedded_wind_mw, embedded_solar_mw, demand_da_mw]
+    exog_known_lag_minutes: 0         # a vintage is usable if forecast_made_utc <= issue - this lag
+    include_residual_load: true       # derived: demand - wind - embedded wind - embedded solar, per slot
+    sources: [elexon_ndf, elexon_windfor, neso_embedded_forecast]
+  # Criterion selection happens here, never on the backtest window.
+  validation_window: {start: 2025-04-01, end: 2025-09-30}
 
 ingest:
   exog:

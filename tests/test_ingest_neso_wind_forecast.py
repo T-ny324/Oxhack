@@ -61,7 +61,9 @@ def test_same_day_stamps_are_kept_literally_and_reported_in_coverage():
         len(sept) < 48
     )  # periods before 08:45 on the day have made > target and were dropped as artefacts
     cov = nw.coverage_by_month(out, CFG)
-    assert cov.loc[pd.Period("2024-03")] == 1.0 and cov.loc[pd.Period("2026-09")] == 0.0
+    # days with no usable vintage count as uncovered: March 2024 spans the 11th..31st here, one day covered
+    assert cov.loc[pd.Period("2024-03")] == pytest.approx(1 / 21)
+    assert cov.loc[pd.Period("2026-09")] == 0.0
 
 
 def test_artefact_rows_made_after_target_are_dropped(caplog):

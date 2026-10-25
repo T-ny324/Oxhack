@@ -39,7 +39,16 @@ CFG = ForecastConfig(
         "lambda_selection": "aic",
         "n_jobs": -1,
         "write_component_models": False,
+        "lambda_selection_by_model": {},
     },
+    exog={
+        "enabled_for_models": ["lear_x"],
+        "variables": ["wind_da_mw", "embedded_wind_mw", "embedded_solar_mw", "demand_da_mw"],
+        "exog_known_lag_minutes": 0,
+        "include_residual_load": True,
+        "sources": ["elexon_ndf", "elexon_windfor", "neso_embedded_forecast"],
+    },
+    validation_window={"start": "2025-04-01", "end": "2025-09-30"},
 )
 HALF_HOUR = pd.Timedelta("30min")
 
@@ -93,6 +102,7 @@ def test_assumptions_yaml_has_a_valid_forecast_section():
         Assumptions.model_validate(yaml.safe_load(fh))  # whole file still validates
     assert window_dates(cfg, "smoke") == (date(2025, 11, 3), date(2025, 11, 30))
     assert window_dates(cfg, "backtest") == (date(2025, 10, 1), date(2026, 9, 30))
+    assert window_dates(cfg, "validation") == (date(2025, 4, 1), date(2025, 9, 30))
 
 
 def test_config_rejects_bad_values():
