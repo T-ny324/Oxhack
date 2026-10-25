@@ -34,6 +34,7 @@ pip install -U pip
 pip install -e ".[dev]"
 make all
 make data-prices   # GB wholesale prices (Elexon MID) -> data/processed/prices.parquet
+make forecast-naive   # naive price baselines + eval -> artefacts/forecasts/price_quantiles.parquet
 ```
 
 Data ingest lives in `src/v2g/ingest/` (see its README). Raw API responses are

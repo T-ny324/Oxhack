@@ -28,3 +28,17 @@ price_policy:
   import_fee_multiplier: 1.0
   export_fee_multiplier: 0.9
   double_fee_policy: false
+forecast:
+  series: elexon_mid
+  issue_local_time: "10:00"
+  timezone: Europe/London
+  # A price period is known at issue time only if its START <= issue_time - lag * 30 min
+  # (so periods starting up to 09:00 for a 10:00 issue).
+  price_known_lag_periods: 2
+  # Local issue dates, inclusive.
+  smoke_window: {start: 2025-11-03, end: 2025-11-30}
+  backtest_window: {start: 2025-10-01, end: 2026-09-30}
+  # Empirical residual quantiles use this many days of the model's own past errors.
+  quantile_history_days: 56
+  # Lead-time bucket edges in hours, left-closed: [0,6) [6,12) [12,24) [24,40).
+  lead_buckets_h: [0, 6, 12, 24, 40]

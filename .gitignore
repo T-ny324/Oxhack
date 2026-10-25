@@ -160,3 +160,4 @@ venv/
 # Generated data: raw API cache and processed tables (re-create with `make data`)
 data/raw/
 data/processed/
+artefacts/
