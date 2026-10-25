@@ -39,6 +39,13 @@ Method
 * Forecasts from all windows are averaged in price space -> model ``lear``.
   With ``write_component_models`` the per-window models ``lear_wNN`` are
   written as well.
+* Exogenous (raw-scale) features are clipped at prediction time to the
+  z-score range seen in the training window: a linear model must not
+  extrapolate an input far outside its support, and with the asinh
+  back-transform an out-of-range solar or demand value turned into forecasts
+  of 10^6 £/MWh (dawn/dusk solar slots in spring, after a winter-only
+  window). Price features are already compressed by asinh and are not
+  clipped, so prices-only ``lear`` is unaffected. Clipped counts are logged.
 * Recalibration every ``recalibrate_every_days``; in between the last fit
   (including its transform and scaler) is reused but each day's features are
   rebuilt. A NaN test feature (long gap in a past day) is replaced by the
@@ -203,13 +210,27 @@ class WindowFit:
     alpha: np.ndarray
     nnz: np.ndarray
     n_train: np.ndarray
+    clip_lo: np.ndarray | None = (
+        None  # per-feature z-score bounds applied at prediction (exog only)
+    )
+    clip_hi: np.ndarray | None = None
 
-    def predict(self, features_raw: np.ndarray) -> np.ndarray:
-        """£/MWh prediction for every model key from one raw feature vector."""
+    def standardise(self, features_raw: np.ndarray) -> tuple[np.ndarray, int]:
+        """Transform + z-score one raw feature vector; returns (z, number of clipped features)."""
         x = np.array(features_raw, dtype="float64")
         x[self.price_mask] = self.transform.forward(x[self.price_mask])
         z = (x - self.feature_mean) / self.feature_std
         z[~np.isfinite(z)] = 0.0  # unknown feature -> training mean
+        clipped = 0
+        if self.clip_lo is not None:
+            out_of_range = (z < self.clip_lo) | (z > self.clip_hi)
+            clipped = int(out_of_range.sum())
+            z = np.clip(z, self.clip_lo, self.clip_hi)
+        return z, clipped
+
+    def predict(self, features_raw: np.ndarray) -> np.ndarray:
+        """£/MWh prediction for every model key from one raw feature vector."""
+        z, _ = self.standardise(features_raw)
         return self.transform.inverse(self.coef @ z + self.intercept)
 
 
@@ -357,6 +378,8 @@ class LearForecaster:
                     alpha=alpha,
                     nnz=nnz,
                     n_train=n_train,
+                    clip_lo=np.where(self.price_mask, -np.inf, Xs.min(axis=0)),
+                    clip_hi=np.where(self.price_mask, np.inf, Xs.max(axis=0)),
                 )
             )
         return fits
@@ -372,7 +395,20 @@ class LearForecaster:
                 d,
                 int((~np.isfinite(x)).sum()),
             )
-        per_window = np.vstack([f.predict(x) for f in fits])  # (n_windows, n_models)
+        standardised = [f.standardise(x) for f in fits]
+        clipped = sum(c for _, c in standardised)
+        if clipped:
+            log.info(
+                "%s: %d exogenous feature values clipped to the training range",
+                d,
+                clipped,
+            )
+        per_window = np.vstack(
+            [
+                f.transform.inverse(f.coef @ z + f.intercept)
+                for f, (z, _) in zip(fits, standardised)
+            ]
+        )  # (n_windows, n_models)
         local = targets.tz_convert(tzinfo(self.cfg))
         blocks = np.where(local.date == d, "A", "B")
         slots = slot_of(local)

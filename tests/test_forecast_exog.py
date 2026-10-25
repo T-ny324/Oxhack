@@ -355,3 +355,33 @@ def test_lear_x_rows_with_missing_exog_are_dropped_in_training_and_zero_filled_a
     with caplog.at_level("WARNING"):
         out = fc.forecast_issue(date(2025, 10, 18), fits)
     assert np.isfinite(out["p50"]).all() and "NaN features replaced" in caplog.text
+
+
+def test_out_of_range_exog_values_are_clipped_to_the_training_range_at_prediction():
+    d = date(2025, 11, 12)
+    prices = ar_prices("2025-08-01", 130)
+    table = synthetic_vintages("2025-09-25", "2025-11-20")
+    data = ld.prepare(prices, CFG)
+    fc = lear.LearForecaster(
+        data, CFG, model_name="lear_x", exog=ex.ExogVintages(table, CFG)
+    )
+    fits = fc.fit(d)
+    fit = fits[0]
+    x = fc.features(d).copy()
+    baseline = fit.predict(x)
+    # an absurd exogenous input (10^6 MW) must not blow the forecast up through the asinh inverse
+    j = fc.names.index("embedded_solar_d1_s20")
+    x[j] = 1e6
+    _, baseline_clipped = fit.standardise(
+        fc.features(d)
+    )  # a new day's values can sit just outside a 28-row range
+    z, clipped = fit.standardise(x)
+    assert clipped == baseline_clipped + 1 and z[j] == fit.clip_hi[j]
+    bounded = fit.predict(x)
+    assert np.all(np.abs(bounded - baseline) < 10 * fit.transform.mad)
+    assert np.isfinite(bounded).all()
+    # price features are never clipped
+    assert (
+        np.isneginf(fit.clip_lo[fc.price_mask]).all()
+        and np.isposinf(fit.clip_hi[fc.price_mask]).all()
+    )
