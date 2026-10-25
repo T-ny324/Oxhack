@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from datetime import date
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -92,6 +93,27 @@ class DateWindow(BaseModel):
         return self
 
 
+class LearConfig(BaseModel):
+    """LEAR settings: the ``forecast.lear`` subsection of config/assumptions.yaml."""
+
+    model_config = ConfigDict(extra="forbid")
+    calibration_windows_days: list[int] = Field(min_length=1)
+    recalibrate_every_days: int = Field(ge=1)
+    impute_max_gap_periods: int = Field(ge=0)
+    lambda_selection: Literal["aic", "bic", "cv"]
+    n_jobs: int
+    write_component_models: bool
+
+    @field_validator("calibration_windows_days")
+    @classmethod
+    def _positive_increasing(cls, windows: list[int]) -> list[int]:
+        if any(w <= 0 for w in windows) or sorted(set(windows)) != list(windows):
+            raise ValueError(
+                f"calibration_windows_days must be positive, unique and increasing, got {windows}"
+            )
+        return windows
+
+
 class ForecastConfig(BaseModel):
     """Stage S3 settings: the ``forecast:`` section of config/assumptions.yaml."""
 
@@ -104,6 +126,7 @@ class ForecastConfig(BaseModel):
     backtest_window: DateWindow
     quantile_history_days: int = Field(gt=0)
     lead_buckets_h: list[float] = Field(min_length=2)
+    lear: LearConfig
 
     @field_validator("issue_local_time")
     @classmethod

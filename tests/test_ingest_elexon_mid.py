@@ -352,7 +352,10 @@ def test_window_ending_in_the_future_is_not_cached(tmp_path, no_sleep):
 # -------------------------------------------------------------------- retries
 
 
-def test_retries_on_5xx_and_429_then_succeeds(no_sleep):
+def test_retries_on_5xx_and_429_then_succeeds(no_sleep, monkeypatch):
+    monkeypatch.setattr(
+        em.random, "uniform", lambda a, b: 0.0
+    )  # no jitter: makes the backoff growth observable
     session = FakeSession(statuses=[503, 429])
     text = em.fetch_chunk(
         session,

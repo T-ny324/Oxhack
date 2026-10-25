@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: install format lint test data data-prices forecast-naive forecast-naive-smoke all
+.PHONY: install format lint test data data-prices forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke all
 
 install:
 	$(PYTHON) -m pip install -U pip
@@ -29,6 +29,14 @@ data: data-prices
 forecast-naive:
 	$(PYTHON) -m v2g.forecast.baselines --window backtest
 	$(PYTHON) -m v2g.forecast.evaluate --window backtest
+
+forecast-lear:
+	$(PYTHON) -m v2g.forecast.lear --window backtest
+	$(PYTHON) -m v2g.forecast.evaluate --window backtest --out artefacts/forecasts/eval_lear.csv
+
+forecast-lear-smoke:
+	$(PYTHON) -m v2g.forecast.lear --window smoke --out artefacts/forecasts/price_quantiles_smoke.parquet --diagnostics artefacts/forecasts/lear_diagnostics_smoke.parquet --top-features artefacts/forecasts/lear_top_features_smoke.csv
+	$(PYTHON) -m v2g.forecast.evaluate --window smoke --forecasts artefacts/forecasts/price_quantiles_smoke.parquet --out artefacts/forecasts/eval_lear_smoke.csv
 
 forecast-naive-smoke:
 	$(PYTHON) -m v2g.forecast.baselines --window smoke --out artefacts/forecasts/price_quantiles_smoke.parquet

@@ -40,22 +40,16 @@ Price lookup rule (shared)
     never emitted. Each row keeps ``ref_time_utc`` internally so leakage can be
     tested; it is dropped before writing.
 
-Quantiles (empirical residuals by lead-time bucket)
-    For each issue, take the model's own past errors (actual - p50) from issues
-    in the previous ``quantile_history_days``, using only targets whose actual
-    was known at this issue's cutoff. Within each lead bucket
-    q10 = p50 + P10(errors), q90 = p50 + P90(errors); buckets with fewer than
-    ``MIN_BUCKET_ERRORS`` errors pool all buckets. q10 <= p50 <= q90 is
-    enforced. Point forecasts are generated from
-    (window start - quantile_history_days - 7 days) as warm-up and only issues
-    inside the requested window are written.
+Quantiles
+    Shared with every S3 model: see :mod:`v2g.forecast.quantiles` (empirical
+    residuals by lead-time bucket, warm-up before the window, only in-window
+    issues written).
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
-from datetime import timedelta
 from pathlib import Path
 
 import numpy as np
@@ -76,12 +70,16 @@ from v2g.forecast.io import (
     lookup_prices,
     write_forecasts,
 )
+from v2g.forecast.quantiles import (  # noqa: F401
+    MIN_BUCKET_ERRORS,
+    add_quantiles,
+    finalise_window,
+    warmup_start,
+)
 from v2g.forecast.timing import (
     UTC_DTYPE,
     issue_times,
     known_cutoff,
-    lead_bucket,
-    lead_time_hours,
     local_to_utc,
     target_times,
     to_date,
@@ -93,7 +91,6 @@ log = logging.getLogger(__name__)
 MODELS = ("naive_weekly", "naive_daily")
 MAX_WEEKLY_STEPS = 4  # fall back up to 4 weeks, 7 days at a time
 TUE_TO_FRI = (1, 2, 3, 4)  # Monday == 0
-MIN_BUCKET_ERRORS = 10
 POINT_COLUMNS = [
     "model",
     "series",
@@ -186,60 +183,6 @@ def forecast_points(
     return out[POINT_COLUMNS]
 
 
-# --------------------------------------------------------------------- quantiles
-
-
-def add_quantiles(
-    points: pd.DataFrame,
-    prices: pd.Series,
-    cfg: ForecastConfig,
-    min_bucket_errors: int = MIN_BUCKET_ERRORS,
-) -> pd.DataFrame:
-    """Add q10/q90 from the model's own past errors, per issue and lead bucket.
-
-    Rows whose issue has no known history yet (warm-up) get NaN quantiles.
-    """
-    if points["model"].nunique() != 1:
-        raise ValueError("add_quantiles expects rows of a single model")
-    df = points.reset_index(drop=True).copy()
-    buckets = lead_bucket(
-        lead_time_hours(df["issue_time_utc"], df["target_time_utc"]), cfg
-    ).to_numpy()
-    p50 = df["p50"].to_numpy(dtype="float64")
-    err = lookup_prices(prices, df["target_time_utc"]) - p50
-    issue = df["issue_time_utc"].dt.tz_convert(None).to_numpy()
-    target = df["target_time_utc"].dt.tz_convert(None).to_numpy()
-    history = np.timedelta64(cfg.quantile_history_days, "D")
-    lag = np.timedelta64(cfg.price_known_lag_periods * 30, "m")
-
-    q10 = np.full(len(df), np.nan)
-    q90 = np.full(len(df), np.nan)
-    for this_issue in np.unique(issue):
-        cutoff = this_issue - lag
-        known = (
-            (issue >= this_issue - history)
-            & (issue < this_issue)
-            & (target <= cutoff)
-            & ~np.isnan(err)
-        )
-        if not known.any():
-            continue
-        pooled = err[known]
-        current = issue == this_issue
-        for bucket in np.unique(buckets[current]):
-            errors = err[known & (buckets == bucket)]
-            if len(errors) < min_bucket_errors:
-                errors = pooled
-            lo, hi = np.percentile(errors, [10, 90])
-            rows = current & (buckets == bucket)
-            q10[rows] = p50[rows] + lo
-            q90[rows] = p50[rows] + hi
-
-    df["q10"] = np.minimum(q10, p50)
-    df["q90"] = np.maximum(q90, p50)
-    return df
-
-
 # --------------------------------------------------------------------------- run
 
 
@@ -261,8 +204,8 @@ def run(
         if model not in MODELS:
             raise ValueError(f"unknown model {model!r}; choose from {MODELS}")
     prices = load_prices(prices_path)
-    warmup_start = start - timedelta(days=cfg.quantile_history_days + 7)
-    issues = issue_times(warmup_start, end, cfg)
+    first_issue = warmup_start(start, cfg)
+    issues = issue_times(first_issue, end, cfg)
     first_in_window = issue_times(start, start, cfg)[0]
     log.info(
         "Forecasting %s for issues %s..%s (%d issues incl. %d-day warm-up from %s)",
@@ -271,26 +214,17 @@ def run(
         end,
         len(issues),
         cfg.quantile_history_days + 7,
-        warmup_start,
+        first_issue,
     )
 
     frames = []
     for model in models:
         points = forecast_points(model, issues, prices, cfg)
-        with_q = add_quantiles(points, prices, cfg)
-        in_window = with_q[with_q["issue_time_utc"] >= first_in_window]
-        if in_window[["q10", "q90"]].isna().any().any():
-            raise ValueError(
-                f"{model}: quantiles undefined for some issues in the window; "
-                f"actual prices are needed over the {cfg.quantile_history_days}-day warm-up"
+        frames.append(
+            finalise_window(
+                add_quantiles(points, prices, cfg), first_in_window, model, cfg
             )
-        log.info(
-            "%s: %d rows for %d issues",
-            model,
-            len(in_window),
-            in_window["issue_time_utc"].nunique(),
         )
-        frames.append(in_window)
 
     result = pd.concat(frames, ignore_index=True)
     write_forecasts(result[CONTRACT_COLUMNS], out_path, cfg)

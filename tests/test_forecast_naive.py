@@ -32,6 +32,14 @@ CFG = ForecastConfig(
     backtest_window={"start": "2025-10-01", "end": "2026-09-30"},
     quantile_history_days=56,
     lead_buckets_h=[0, 6, 12, 24, 40],
+    lear={
+        "calibration_windows_days": [56, 84, 364, 728],
+        "recalibrate_every_days": 1,
+        "impute_max_gap_periods": 8,
+        "lambda_selection": "aic",
+        "n_jobs": -1,
+        "write_component_models": False,
+    },
 )
 HALF_HOUR = pd.Timedelta("30min")
 
