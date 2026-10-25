@@ -31,20 +31,23 @@ void converter_init(uint32_t now_ms) {
     lease_active = false;
 }
 
-// Server sends 'SET_POWER +2.5', 'SET_POWER -2.5', or 'STOP'.
-// Accept only strict ASCII decimal values in this demonstration.
+// Exact compact JSON protocol forwarded by receive_data.py.
+// {"command":"SET_POWER","mode":"CHARGE|DISCHARGE|STOP","power_kw":2.0}
+// Mode is explicit; power_kw is a nonnegative magnitude.
 bool converter_handle_command(const char *text, uint32_t now_ms) {
     if (!text || s.fault_latched) return false;
+    char mode[16] = {0};
+    float magnitude = 0.0f;
+    int consumed = 0;
+    if (sscanf(text,
+        "{\"command\":\"SET_POWER\",\"mode\":\"%15[A-Z]\",\"power_kw\":%f}%n",
+        mode, &magnitude, &consumed) != 2 || consumed == 0 || text[consumed] != '\0') return false;
+    if (!isfinite(magnitude) || magnitude < 0.0f || magnitude > CHARGE_LIMIT_KW) return false;
     float target = 0.0f;
-    if (strcmp(text, "STOP") != 0) {
-        if (strncmp(text, "SET_POWER ", 10) != 0) return false;
-        const char *start = text + 10;
-        if (!(*start == '+' || *start == '-' || isdigit((unsigned char)*start))) return false;
-        char *end = NULL;
-        target = strtof(start, &end);
-        if (end == start || !isfinite(target) || *end != '\0') return false;
-        if (target > CHARGE_LIMIT_KW || target < -DISCHARGE_LIMIT_KW) return false;
-    }
+    if (strcmp(mode, "CHARGE") == 0) target = magnitude;
+    else if (strcmp(mode, "DISCHARGE") == 0) target = -magnitude;
+    else if (strcmp(mode, "STOP") == 0 && magnitude == 0.0f) target = 0.0f;
+    else return false;
     // No actual power stage is enabled by this module.
     bool changed = fabsf(target - s.requested_power_kw) > 0.0005f;
     s.requested_power_kw = target;

@@ -7,7 +7,7 @@
 #include "power_stage.h"
 
 // MQTT-only operation. No local scheduler or autonomous charging.
-// A valid SET_POWER command must be refreshed at least every 5 seconds.
+// A valid JSON SET_POWER command must be refreshed at least every 5 seconds.
 #define TELEMETRY_PERIOD_MS 1000u
 
 int main(void) {
@@ -59,8 +59,7 @@ int main(void) {
                 (double)s.battery_voltage_v);
             if (len > 0 && (size_t)len < sizeof payload) {
                 if (mqtt_ok) {
-                    mqtt_service_publish_telemetry(payload);
-                    mqtt_service_publish_status(payload);
+                    // Closed-loop command-only demo: no outgoing MQTT telemetry.
                 }
                 printf("[telemetry] %s\n", payload);
             }
