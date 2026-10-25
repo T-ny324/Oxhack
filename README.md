@@ -1,67 +1,55 @@
-# Oxhack V2G Hackathon Repo
+# ExtraEnergy — *Making energy work for you*
 
-This repository is set up for the Oxhack V2G hackathon project described in `v2g_hackathon_context.md`.
+**Accelerating the EV transition.**
 
-## Project thesis
+We sell a complete V2G product: a bidirectional EV charger (hardware) plus the software that
+runs it, which learns from each driver's usage and forecasts energy prices to decide when the
+car should charge and when it should sell back. The owner chooses how the software behaves:
+**maximum savings**, or the best savings while **guaranteeing the car is charged** to a level
+they pick whenever they need it. We show, with data, what that product is worth to the owner,
+and how much energy each car sells back to the grid when it is needed most.
 
-We design a bidirectional EV charger and then show, with data, what that exact design is worth to the owner who buys it and to the grid it plugs into, today and in 10 years.
+Target market: any EV owner with a home mains connection, supported by government subsidies.
+*Coming soon: ExtraEnergy for fleets.*
 
-The repo is structured around the logic chain:
+**Live app:** _link coming soon (Streamlit Community Cloud)_
 
-1. Hardware design → converter properties
-2. Single vehicle → optimal buy/sell schedule
-3. Fleet → aggregated flexibility and adoption
-4. Grid → peak coverage, reliability and renewables absorption
-5. 10-year view → adoption forecast and system value
-6. Feedback loop → design targets back to hardware
+| Owner view | Analysis view |
+|---|---|
+| ![Owner view](docs/screenshots/owner_view.png) | ![Analysis view](docs/screenshots/analysis_view.png) |
 
-## Repository layout
+## Run the app locally (macOS)
 
-- `config/` - shared assumptions, converter spec, and design targets
-- `shared/` - schema and unit conversion helpers
-- `src/v2g/` - pipeline stages for ingest, forecast, optimisation, fleet, grid, economics and sensitivity
-- `dashboard/` - interactive Streamlit demo app
-- `hardware/` - converter design notes, BOM and low-voltage prototype ideas
-- `tests/` - consistency checks and schema validation
-- `data/` and `artefacts/` - generated inputs and outputs
-
-## Quick start
+Needs Python 3.11 or 3.12 (the built-in macOS `python3` is too old). With
+[uv](https://docs.astral.sh/uv/) (`brew install uv`):
 
 ```bash
-python -m venv .venv
+uv venv --python 3.12 .venv
 source .venv/bin/activate
-pip install -U pip
-pip install -e .
-make all
+uv pip install -r requirements.txt pytest pydantic
+streamlit run dashboard/app.py        # opens http://localhost:8501 (Ctrl+C to stop)
 ```
 
-## Core contract
+Without uv: `python3.12 -m venv .venv`, then `pip install -r requirements.txt pytest pydantic`.
 
-The shared interface starts with `config/converter_spec.yaml`. The hardware team owns the converter specification, and the data side consumes it to compute economics, fleet flexibility, and grid impact.
+The app has three tabs: **ExtraEnergy app** (what the owner sees), **Analysis** (prices, the
+habits model, savings, payback) and **Hardware** (the converter spec). Anything marked
+PLACEHOLDER is synthetic until the matching pipeline stage lands.
 
-## Key files
+## Run the tests
 
-- `config/converter_spec.yaml` - hardware specification contract
-- `config/design_targets.yaml` - feedback loop from data/model output
-- `shared/schema.py` - Pydantic models for validation
-- `dashboard/app.py` - demo dashboard
-- `v2g_hackathon_context.md` - full concept and delivery plan
+```bash
+source .venv/bin/activate
+pytest tests/
+```
 
-## Hackathon objective
+## Where things are
 
-The aim is not just to build a model, but to produce a credible end-to-end value chain:
-
-- a realistic converter spec
-- a schedule optimiser for one EV
-- a fleet-level flexibility model
-- a 10-year adoption and grid impact analysis
-- a headline result tying hardware, economics and grid value together
-
-## Recommended team workflow
-
-- Hardware team: refine the converter efficiency curve and cost assumptions
-- Data team: forecast prices, build the optimizer, generate fleet metrics
-- Integration lead: keep the pipeline contract stable and end-to-end tests passing
+- `CONTEXT.md`: the full plan (pitch, interfaces, units, pipeline, checks). Start here.
+- `dashboard/app.py`: the Streamlit app. Theme colours: `.streamlit/config.toml`.
+- `config/converter_spec.yaml`: the hardware spec (owned by the hardware team).
+- `8b_singleev_optimiser/v2g-hack/`: the single-vehicle optimiser and the habits model
+  (trained on Electric Nation data); see its `docs/optimisation_problem.md`.
 
 ## License
 

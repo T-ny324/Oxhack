@@ -1,0 +1,11 @@
+# ExtraEnergy brand theme. Change colours here, not in app.py.
+[theme]
+base = "light"
+primaryColor = "#16A34A"
+backgroundColor = "#F6FBF7"
+secondaryBackgroundColor = "#E6F4EA"
+textColor = "#0F2E1C"
+font = "sans serif"
+
+[server]
+headless = true

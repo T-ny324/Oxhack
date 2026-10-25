@@ -150,3 +150,16 @@ vite.config.ts.timestamp-*
 
 # macOS Finder metadata
 .DS_Store
+
+# ---- Python / Streamlit (ExtraEnergy app) ----
+.venv/
+__pycache__/
+.pytest_cache/
+# API keys for the deployed app live in Streamlit Cloud's Secrets, never in git.
+# (.streamlit/config.toml holds the theme and IS committed.)
+.streamlit/secrets.toml
+# Pipeline data and outputs at the repo ROOT only (leading "/"), so the committed
+# processed data and artefacts under 8b_singleev_optimiser/ stay tracked.
+/data/raw/
+/data/processed/
+/artefacts/
