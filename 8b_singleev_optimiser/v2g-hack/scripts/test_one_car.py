@@ -3,6 +3,8 @@
     python scripts/test_one_car.py                                  # an example test-set car
     python scripts/test_one_car.py --vehicle UK-GFX-ENA0225 --week 2018-11-05
     python scripts/test_one_car.py --list                           # cars + weeks you can pick
+    python scripts/test_one_car.py --mode guaranteed_charge --target 0.8   # app setting
+    python scripts/test_one_car.py --sweep                          # target % vs £ (slider demo)
 
 Steps (the product loop, on Electric Nation data):
   1. take the car's sessions from the 7 days before Monday 00:00 (UK time);
@@ -10,6 +12,8 @@ Steps (the product loop, on Electric Nation data):
   3. plan with those predictions, re-planning at 10:00 and whenever the car plugs in,
      while reality follows what the car really did that week (run_daily_vs_reality);
   4. compare with a normal charger and with perfect knowledge of the week.
+The app setting (--mode / --target, default: config/assumptions.yaml) picks the floor:
+max_savings (next trip + reserve) or guaranteed_charge (SoC >= target whenever plugged in).
 Writes artefacts/one_car/<vehicle>_<week>.{csv,json}. Prices: data/processed/prices.parquet
 if present, else synthetic (labelled).
 """
@@ -30,8 +34,9 @@ from shared.units import utc_index  # noqa: E402
 from v2g.habits.features import OUT as DATASET  # noqa: E402
 from v2g.habits.predict import load_model, plan_inputs_from_predictions, predict_next_week  # noqa: E402
 from v2g.ingest.synthetic import synthetic_prices  # noqa: E402
-from v2g.optimise.daily import (bill, departure_check, floor_learned, params_from_config,  # noqa: E402
-                                run_daily, run_daily_vs_reality, run_unmanaged, trace_from_sessions)
+from v2g.optimise.daily import (MODES, bill, departure_check, mode_floor_builder,  # noqa: E402
+                                params_from_config, run_daily, run_daily_vs_reality, run_unmanaged,
+                                trace_from_sessions)
 
 SESSIONS = ROOT / "data" / "processed" / "sessions.parquet"
 OUT = ROOT / "artefacts" / "one_car"
@@ -43,6 +48,10 @@ def main():
     ap.add_argument("--week", help="Monday (local date) to predict, e.g. 2018-11-05")
     ap.add_argument("--always-ready", action="store_true", help="hold trip energy all session")
     ap.add_argument("--list", action="store_true", help="list test-set cars and weeks, then exit")
+    ap.add_argument("--mode", choices=sorted(MODES), help="app setting (default: config optimiser.mode)")
+    ap.add_argument("--target", type=float, help="guaranteed_charge target SoC, e.g. 0.8 "
+                                                  "(default: config optimiser.target_soc)")
+    ap.add_argument("--sweep", action="store_true", help="also run guaranteed_charge at 50-90 %% targets")
     args = ap.parse_args()
 
     df = pd.read_parquet(DATASET)
@@ -65,6 +74,8 @@ def main():
 
     a = load_assumptions()
     params, tz, dt = params_from_config(load_spec(), a), a.timezone_local, a.dt_h
+    mode = args.mode or a.optimiser.mode
+    target = args.target if args.target is not None else a.optimiser.target_soc
     sessions = pd.read_parquet(SESSIONS)
     car = sessions[sessions["vehicle_id"] == vid]
     if car.empty:
@@ -100,15 +111,17 @@ def main():
     buy, sell = w + a.tariff.import_adder_per_mwh, w + a.tariff.export_adder_per_mwh
     soc0 = a.battery.soc_initial
 
-    def perfect_floor(i, j):
-        return floor_learned(j - i, [(d - i, e) for d, e in truth.departures if i < d <= j], params)
+    def predicted_run(m, tgt):
+        pi = plan_inputs_from_predictions(days, real, truth.plugged, index, params, tz,
+                                          always_ready=args.always_ready, mode=m, target_soc=tgt)
+        return run_daily_vs_reality(params, truth, buy, sell, pi, soc0, tz, execute_until=T)
 
-    pi = plan_inputs_from_predictions(days, real, truth.plugged, index, params, tz,
-                                      always_ready=args.always_ready)
     runs = {"normal charger": run_unmanaged(params, truth, soc0, T),
-            "habits model": run_daily_vs_reality(params, truth, buy, sell, pi, soc0, tz, execute_until=T)}
+            "habits model": predicted_run(mode, target)}
     try:
-        runs["perfect knowledge"] = run_daily(params, truth, buy, sell, perfect_floor, soc0, tz, execute_until=T)
+        runs["perfect knowledge"] = run_daily(params, truth, buy, sell,
+                                              mode_floor_builder(mode, truth, params, target),
+                                              soc0, tz, execute_until=T)
     except RuntimeError:
         print("(perfect-knowledge run infeasible for this week: a trip the car could not charge for)")
 
@@ -123,9 +136,23 @@ def main():
                          "departures": len(deps),
                          "shortfalls_over_1kwh": sum(d["short_kwh"] > 1 for d in deps),
                          "worst_shortfall_kwh": round(max([d["short_kwh"] for d in deps], default=0), 1)}
-    print(f"\nWeek result ({price_src} prices, {params.e_cap_kwh:.0f} kWh battery, "
-          f"{'always-ready' if args.always_ready else 'standard'} mode):")
+    setting = mode + (f" (target {target:.0%})" if mode == "guaranteed_charge" else "")
+    print(f"\nWeek result: app mode {setting}; {price_src} prices, {params.e_cap_kwh:.0f} kWh battery"
+          f"{', always-ready' if args.always_ready else ''}:")
     print(pd.DataFrame(summary).T.to_string())
+
+    if args.sweep:                         # the "cost of peace of mind" slider, same car and week
+        rows = {}
+        for m, tgt in [("max_savings", None)] + [("guaranteed_charge", t) for t in (0.5, 0.6, 0.7, 0.8, 0.9)]:
+            r = predicted_run(m, tgt if tgt is not None else target)
+            deps = r["departures"]
+            rows[m if tgt is None else f"guaranteed {tgt:.0%}"] = {
+                "saving_gbp_vs_normal": round(ref - bill(params, r, buy, sell)["adj_bill"], 2),
+                "lowest_soc_at_departure": round(min([d["soc"] for d in deps], default=float("nan")), 2),
+                "shortfalls_over_1kwh": sum(d["short_kwh"] > 1 for d in deps)}
+        print("\nApp setting sweep (habits model, same week):")
+        print(pd.DataFrame(rows).T.to_string())
+        summary["sweep"] = rows
 
     r = runs["habits model"]
     sched = pd.DataFrame({"time_uk": index[:T].tz_convert(tz).strftime("%a %d %b %H:%M"),
@@ -136,6 +163,7 @@ def main():
     stem = f"{vid}_{ws.date()}"
     sched.to_csv(OUT / f"{stem}.csv", index=False)
     (OUT / f"{stem}.json").write_text(json.dumps({"vehicle_id": vid, "week": str(ws.date()), "prices": price_src,
+                                                  "mode": mode, "target_soc": target,
                                                   "summary": summary}, indent=2))
     print(f"\nHalf-hourly schedule: {OUT / (stem + '.csv')}")
 

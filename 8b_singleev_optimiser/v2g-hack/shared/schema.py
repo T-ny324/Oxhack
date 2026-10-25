@@ -138,6 +138,9 @@ class OptimiserConfig(BaseModel):
     reopt_every_steps: int = Field(ge=1)
     rule_discharge_slots: int = Field(ge=0)
     price_source: Literal["forecast", "perfect"]
+    # App setting (§8.B.1); defaults keep older config files loading.
+    mode: Literal["max_savings", "guaranteed_charge"] = "max_savings"
+    target_soc: float = Field(default=0.80, ge=0, le=1)
 
 
 class DateWindow(BaseModel):

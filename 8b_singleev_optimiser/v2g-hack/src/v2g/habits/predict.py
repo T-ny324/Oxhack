@@ -22,7 +22,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from v2g.optimise.daily import floor_learned, trace_from_sessions
+from v2g.optimise.daily import floor_for_mode, trace_from_sessions
 from v2g.optimise.lp import VehicleParams
 
 from .features import HabitsConfig, build_features, local_hours_to_utc
@@ -106,8 +106,13 @@ def predict_next_week(sessions_last_week: pd.DataFrame, week_start_utc, model=No
 def plan_inputs_from_predictions(days: pd.DataFrame, true_sessions: pd.DataFrame,
                                  truth_plugged: np.ndarray, index: pd.DatetimeIndex,
                                  params: VehicleParams, tz: str,
-                                 always_ready: bool = False):   # False = standard mode (product default)
+                                 always_ready: bool = False,   # False = standard (product default)
+                                 mode: str = "max_savings", target_soc: float = 0.80):
     """Build the plan_inputs callback for run_daily_vs_reality (one vehicle).
+
+    mode / target_soc: the app setting (daily.MODES). "guaranteed_charge" adds SoC >= target
+    at every slot the plan believes the car is plugged in (including the session it is in
+    right now, which is known), on top of everything below.
 
     At a re-plan at slot i the optimiser knows ONE fact of reality: whether the car is
     plugged in right now (and since when). Everything else is prediction:
@@ -164,7 +169,7 @@ def plan_inputs_from_predictions(days: pd.DataFrame, true_sessions: pd.DataFrame
         # and the plan is redone from the REAL SoC when the car comes back. Simulating a big
         # P90 trip could also drive the plan's SoC below 0, which lp.py treats as infeasible.
         drive = np.zeros(j - i)
-        floor = floor_learned(j - i, tr.departures, params, reserve=RESERVE)
+        floor = floor_for_mode(mode, tr.plugged, tr.departures, params, target_soc, RESERVE)
         if hold is not None:                         # require the trip energy from the next slot
             k, need = hold
             floor[1:k + 1] = np.maximum(floor[1:k + 1], need)

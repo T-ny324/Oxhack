@@ -39,12 +39,13 @@ def predicted_days(dep_h, trip, p=0.9, arr_h=18.5):
                          "valid": True, "plugs_in": p >= 0.5})
 
 
-def replay(days, trip=9.0, always_ready=False):
+def replay(days, trip=9.0, always_ready=False, mode="max_savings", target_soc=0.8):
     index = utc_index(START.tz_localize(None), START.tz_localize(None) + pd.Timedelta(days=9), P.dt_h)
     s = true_sessions(trip)
     truth = trace_from_sessions(s, index, P.dt_h)
     w = synthetic_prices(START.tz_localize(None), 9, P.dt_h, TZ, seed=1)["price_wholesale_per_mwh"].to_numpy()
-    pi = plan_inputs_from_predictions(days, s, truth.plugged, index, P, TZ, always_ready=always_ready)
+    pi = plan_inputs_from_predictions(days, s, truth.plugged, index, P, TZ, always_ready=always_ready,
+                                      mode=mode, target_soc=target_soc)
     T = 7 * 48
     return run_daily_vs_reality(P, truth, w + 15, w - 5, pi, 0.6, TZ, execute_until=T), truth, T
 
@@ -111,6 +112,16 @@ def test_bad_prediction_is_logged_not_hidden():
     """Trip 4x bigger than predicted and leaves early: shortfalls must show up in the log."""
     r, _, _ = replay(predicted_days(34.0, 3.0), trip=36.0)
     assert any(d["short_kwh"] > 0 for d in r["departures"])
+
+
+@pytest.mark.parametrize("dep_h, trip", [(31.0, 12.0), (34.0, 3.0)])   # good and bad predictions
+def test_guaranteed_charge_with_predicted_habits(dep_h, trip):
+    """Guaranteed charge does not rely on predictions: even when the departure is predicted
+    2.5 h too late, the car leaves at >= target and never sells below it."""
+    r, truth, T = replay(predicted_days(dep_h, trip), mode="guaranteed_charge", target_soc=0.8)
+    assert min(d["soc"] for d in r["departures"]) >= 0.8 - 1e-6
+    sold = r["p_dis"] > 0
+    assert (r["soc"][1:][sold] >= 0.8 - 1e-6).all()
 
 
 def test_predict_rejects_non_monday():
