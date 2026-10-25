@@ -30,3 +30,27 @@ optimiser:
   reopt_every_steps: 1          # MPC re-solve cadence (also re-solves on every arrival)
   rule_discharge_slots: 4       # rule-based timer: discharge in the k most expensive slots per session
   price_source: forecast        # forecast (S3 P50, else seasonal naive) | perfect
+
+forecast_backtest:
+  # Rolling decision-value backtest on Tony's price forecasts (S3 -> S5). See docs/forecast_backtest.md.
+  # Paths are relative to the repository root.
+  forecast_path: artefacts/forecasts/handoff_price_forecasts.parquet
+  forecast_fallback_path: artefacts/forecasts/price_quantiles.parquet
+  prices_path: data/processed/prices.parquet
+  converter_spec_path: config/converter_spec.yaml      # the root contract file (identical values to ours)
+  series: elexon_mid
+  models: [lear_x, lear, naive_daily, naive_weekly]    # plus perfect_foresight, run through the same loop
+  window: {start: "2025-10-01", end: "2026-09-30"}     # local issue dates, inclusive
+  smoke_window: {start: "2025-11-03", end: "2025-11-30"}
+  profile:                                             # no real 2025-26 sessions exist: a documented weekday commuter
+    kind: commuter
+    weekday_depart_h: 7.75
+    weekday_return_h: 18.0
+    weekday_trip_kwh: 9.0
+    saturday_depart_h: 11.0
+    saturday_return_h: 16.0
+    saturday_trip_kwh: 12.0
+    sunday_trip_kwh: 0
+  floor_reserve: 0.10                                  # Option B (learned habits) with the true trips, for every price model
+  out_dir: artefacts/schedules
+  figures_dir: artefacts/figures
