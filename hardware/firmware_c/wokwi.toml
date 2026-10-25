@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = "cmake-build-debug/oxhack.uf2"
+elf = "cmake-build-debug/oxhack.elf"

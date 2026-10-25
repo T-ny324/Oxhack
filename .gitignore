@@ -178,3 +178,6 @@ __pycache__/
 /data/raw/
 /data/processed/
 /artefacts/
+
+# Firmware host-harness binaries (make -C hardware/firmware_c/host ...)
+hardware/firmware_c/build-host/

@@ -1,0 +1,31 @@
+spec_version: "0.1"
+provenance: placeholder
+topology: "DAB (dual active bridge) DC-DC + totem-pole bidirectional AC-DC"
+architecture: dc_offboard
+grid_side:
+  phases: 1
+  v_ac_rms: 230
+  f_hz: 50
+battery_side:
+  v_dc_min: 250
+  v_dc_max: 450
+power:
+  p_charge_max_kw: 7.4
+  p_discharge_max_kw: 7.4
+  q_max_kvar: 3.0
+efficiency_curve:
+  load_fraction: [0.05, 0.10, 0.25, 0.50, 0.75, 1.00]
+  eta_charge: [0.80, 0.88, 0.94, 0.96, 0.96, 0.955]
+  eta_discharge: [0.78, 0.87, 0.93, 0.955, 0.955, 0.95]
+standby_w: 10
+dynamics:
+  response_time_s: 1.0
+  ramp_kw_per_s: 5.0
+cost:
+  bom_cost: 900
+  install_cost: 500
+  unidirectional_baseline_cost: 800
+lifetime_years: 10
+uncertainty:
+  eta_abs: 0.01
+  cost_rel: 0.25

@@ -1,0 +1,63 @@
+V2G Pico 2 W prototype: DUMMY DATA, simulated measurements only
+[main] MQTT is optional: the demo runs from built-in data even with no network
+[headline] Our 7.4 kW, 96%-peak-efficiency converter, costing GBP 1400, earns an owner GBP 383/yr over smart one-way charging (GBP 1857/yr vs plug-in-and-charge) and pays back its GBP 600 premium in 1.6 years. At 10% participation the 2036 fleet could supply about 1.00 GW of evening peak support. [DUMMY DATA, not a forecast]
+[power-stage] (host stub)
+[plan] day 0 (normal night): arrive SoC 0.30, need 0.80 by 08:00
+[plan] net GBP  plug-in -6.08 | smart-charge -1.99 | V2G -1.39  (V2G exports 9.3 kWh)
+[plan] slot,clock,buy_gbp_mwh,sell_gbp_mwh,p_kw,soc_end
+[plan] 0,18:00,236.7,226.7,-7.12,0.237
+[plan] 1,18:30,224.3,214.3,-4.27,0.200
+[plan] 2,19:00,209.6,199.6,+0.00,0.200
+[plan] 3,19:30,187.9,177.9,+0.00,0.200
+[plan] 4,20:00,165.6,155.6,+0.00,0.200
+[plan] 5,20:30,143.5,133.5,+0.00,0.200
+[plan] 6,21:00,125.4,115.4,+0.00,0.200
+[plan] 7,21:30,106.0,96.0,+0.00,0.200
+[plan] 8,22:00,96.2,86.2,+0.00,0.200
+[plan] 9,22:30,88.3,78.3,+0.00,0.200
+[plan] 10,23:00,76.4,66.4,+0.00,0.200
+[plan] 11,23:30,74.0,64.0,+0.00,0.200
+[plan] 12,00:00,67.0,57.0,+3.77,0.230
+[plan] 13,00:30,66.8,56.8,+7.23,0.287
+[plan] 14,01:00,50.2,40.2,+7.23,0.345
+[plan] 15,01:30,52.5,42.5,+7.23,0.403
+[plan] 16,02:00,42.0,32.0,+7.23,0.460
+[plan] 17,02:30,40.1,30.1,+7.23,0.517
+[plan] 18,03:00,40.6,30.6,+7.23,0.575
+[plan] 19,03:30,37.4,27.4,+7.23,0.632
+[plan] 20,04:00,28.6,18.6,+7.23,0.690
+[plan] 21,04:30,38.9,28.9,+7.23,0.748
+[plan] 22,05:00,35.1,25.1,+7.23,0.805
+[plan] 23,05:30,62.3,52.3,+7.23,0.862
+[plan] 24,06:00,75.5,65.5,+0.00,0.862
+[plan] 25,06:30,98.4,88.4,+0.00,0.862
+[plan] 26,07:00,129.6,119.6,+0.00,0.862
+[plan] 27,07:30,135.6,125.6,-7.12,0.800
+[slot 00 18:00] PLUGGED buy=236.7 sell=226.7 GBP/MWh plan=-7.12 kW SoC=0.300
+[converter] signed power request -7.120 kW
+[led] all off (t=1.5s, p=+0.00 kW, duty~0%)
+[led] BLUE discharge (t=1.5s, p=-0.05 kW, duty~1%)
+[slot 01 18:30] PLUGGED buy=224.3 sell=214.3 GBP/MWh plan=-4.27 kW SoC=0.237
+[converter] signed power request -4.270 kW
+[slot 02 19:00] PLUGGED buy=209.6 sell=199.6 GBP/MWh plan=+0.00 kW SoC=0.200
+[converter] signed power request +0.000 kW
+[led] all off (t=8.3s, p=+0.00 kW, duty~0%)
+[slot 03 19:30] PLUGGED buy=187.9 sell=177.9 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 04 20:00] PLUGGED buy=165.6 sell=155.6 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 05 20:30] PLUGGED buy=143.5 sell=133.5 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 06 21:00] PLUGGED buy=125.4 sell=115.4 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 07 21:30] PLUGGED buy=106.0 sell=96.0 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 08 22:00] PLUGGED buy=96.2 sell=86.2 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 09 22:30] PLUGGED buy=88.3 sell=78.3 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 10 23:00] PLUGGED buy=76.4 sell=66.4 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 11 23:30] PLUGGED buy=74.0 sell=64.0 GBP/MWh plan=+0.00 kW SoC=0.200
+[slot 12 00:00] PLUGGED buy=67.0 sell=57.0 GBP/MWh plan=+3.77 kW SoC=0.200
+[converter] signed power request +3.770 kW
+[led] GREEN charge (t=37.5s, p=+0.05 kW, duty~1%)
+[slot 13 00:30] PLUGGED buy=66.8 sell=56.8 GBP/MWh plan=+7.23 kW SoC=0.230
+[converter] signed power request +7.230 kW
+[slot 14 01:00] PLUGGED buy=50.2 sell=40.2 GBP/MWh plan=+7.23 kW SoC=0.287
+[slot 15 01:30] PLUGGED buy=52.5 sell=42.5 GBP/MWh plan=+7.23 kW SoC=0.345
+...
+[telemetry] {"clock":"04:00","day":0,"plugged":true,"source":"dummy_plan","mode":"CHARGING","fault":false,"battery_soc":0.6325,"power_kw":7.230,"requested_power_kw":7.230,"battery_current_a":20.657,"battery_voltage_v":350.0,"buy_gbp_mwh":28.6,"simulation":true,"sensor_source":"dummy_scenario"}
+[telemetry] {"clock":"10:30","day":0,"plugged":false,"source":"dummy_plan","mode":"STOPPED","fault":false,"battery_soc":0.8000,"power_kw":0.000,"requested_power_kw":0.000,"battery_current_a":0.000,"battery_voltage_v":350.0,"buy_gbp_mwh":92.0,"simulation":true,"sensor_source":"dummy_scenario"}

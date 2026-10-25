@@ -6,7 +6,7 @@
 # Uses .venv/bin/python if a .venv exists, else python3 (override: make PYTHON=...).
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: install install-app format lint app test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke forecast-validate forecast-lear-x forecast-lear-x-smoke notebooks optimise-backtest optimise-backtest-smoke degradation econ sweep all
+.PHONY: control-send control-dry-run install install-app format lint app test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke forecast-validate forecast-lear-x forecast-lear-x-smoke notebooks optimise-backtest optimise-backtest-smoke degradation econ sweep all
 
 install:            ## full pipeline + dev tools (pyproject.toml)
 	$(PYTHON) -m pip install -U pip
@@ -94,3 +94,11 @@ sweep:              ## S10 Sensitivity & design targets
 	@echo "TODO(S10): python -m v2g.sensitivity.design_sweep -> config/design_targets.yaml"
 
 all: test
+
+# --- S5 -> hardware: replay the optimiser's schedule to the charger over the firmware's MQTT protocol
+#     (hardware/firmware_c/INTEGRATION.md). CONTROL_ARGS e.g. "--date 2026-01-15 --slot-seconds 2 --broker 127.0.0.1"
+control-send:
+	$(PYTHON) -m v2g.control.schedule_sender $(CONTROL_ARGS)
+
+control-dry-run:
+	$(PYTHON) -m v2g.control.schedule_sender --dry-run $(CONTROL_ARGS)
