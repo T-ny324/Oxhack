@@ -137,6 +137,20 @@ class ExogConfig(BaseModel):
         return value
 
 
+class GuardConfig(BaseModel):
+    """Plausibility bounds (£/MWh) every written forecast value must satisfy."""
+
+    model_config = ConfigDict(extra="forbid")
+    lo: float
+    hi: float
+
+    @model_validator(mode="after")
+    def _ordered(self) -> GuardConfig:
+        if self.hi <= self.lo:
+            raise ValueError(f"guard.hi ({self.hi}) must exceed guard.lo ({self.lo})")
+        return self
+
+
 class ForecastConfig(BaseModel):
     """Stage S3 settings: the ``forecast:`` section of config/assumptions.yaml."""
 
@@ -152,6 +166,7 @@ class ForecastConfig(BaseModel):
     lear: LearConfig
     exog: ExogConfig
     validation_window: DateWindow
+    guard: GuardConfig
 
     @field_validator("issue_local_time")
     @classmethod

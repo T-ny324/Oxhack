@@ -61,6 +61,8 @@ forecast:
     sources: [elexon_ndf, elexon_windfor, neso_embedded_forecast]
   # Criterion selection happens here, never on the backtest window.
   validation_window: {start: 2025-04-01, end: 2025-09-30}
+  # Every written p50/q10/q90 must lie in [lo, hi] £/MWh; write_forecasts refuses otherwise.
+  guard: {lo: -500, hi: 5000}
 
 ingest:
   exog:

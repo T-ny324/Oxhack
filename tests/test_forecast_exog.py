@@ -51,6 +51,7 @@ def make_cfg(**overrides) -> ForecastConfig:
         lear=lear_cfg,
         exog=exog,
         validation_window={"start": "2025-04-01", "end": "2025-09-30"},
+        guard={"lo": -500, "hi": 5000},
         **overrides,
     )
 

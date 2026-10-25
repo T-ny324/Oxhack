@@ -16,7 +16,10 @@ q10, q90            float64              10th/90th percentile, £/MWh (optional)
 Unique key: (model, series, issue_time_utc, target_time_utc). Each issue holds
 exactly the periods from :func:`v2g.forecast.timing.target_times`. Quantile
 columns are optional, but a model must provide them for all of its rows or none
-of them; where present q10 <= p50 <= q90. £/MWh always; UTC always.
+of them; where present q10 <= p50 <= q90. Every value must lie within the
+plausibility guard ``forecast.guard`` (default -500..5000 £/MWh), which catches
+back-transform blow-ups before they reach the optimiser. £/MWh always; UTC
+always.
 
 Writing is an upsert by model: rows for the models being written replace any
 existing rows for those models, other models are kept, and the file is sorted
@@ -150,6 +153,20 @@ def validate_forecasts(df: pd.DataFrame, cfg: ForecastConfig) -> None:
             np.isfinite(q10[has]).all() and np.isfinite(q90[has]).all()
         ):
             problems.append("q10/q90 contain inf")
+
+    lo, hi = cfg.guard.lo, cfg.guard.hi
+    for col in ("p50", *present_q):
+        values = df[col].to_numpy(dtype="float64")
+        bad = ~np.isnan(values) & ((values < lo) | (values > hi))
+        if bad.any():
+            worst = (
+                df.loc[bad, ["model", "issue_time_utc", "target_time_utc", col]]
+                .head(3)
+                .to_dict("records")
+            )
+            problems.append(
+                f"{int(bad.sum())} {col} values outside the plausibility guard [{lo:g}, {hi:g}] £/MWh, e.g. {worst}"
+            )
 
     tz = tzinfo(cfg)
     local_hhmm = df["issue_time_utc"].dt.tz_convert(tz).dt.strftime("%H:%M")
