@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "author": "oxhack",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-pi-pico-2w",
+      "id": "pico",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledCharge",
+      "top": -120,
+      "left": 280,
+      "attrs": {
+        "color": "green",
+        "label": "CHARGE PWM"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledDischarge",
+      "top": -50,
+      "left": 280,
+      "attrs": {
+        "color": "blue",
+        "label": "DISCHARGE PWM"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledRun",
+      "top": 20,
+      "left": 280,
+      "attrs": {
+        "color": "yellow",
+        "label": "RUN"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -110,
+      "left": 200,
+      "attrs": {
+        "value": "330"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": -40,
+      "left": 200,
+      "attrs": {
+        "value": "330"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 30,
+      "left": 200,
+      "attrs": {
+        "value": "330"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnFault",
+      "top": 90,
+      "left": 290,
+      "attrs": {
+        "label": "FAULT"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "pico:GP2",
+      "r1:1",
+      "green",
+      []
+    ],
+    [
+      "r1:2",
+      "ledCharge:A",
+      "green",
+      []
+    ],
+    [
+      "ledCharge:C",
+      "pico:GND.1",
+      "black",
+      []
+    ],
+    [
+      "pico:GP4",
+      "r2:1",
+      "blue",
+      []
+    ],
+    [
+      "r2:2",
+      "ledDischarge:A",
+      "blue",
+      []
+    ],
+    [
+      "ledDischarge:C",
+      "pico:GND.1",
+      "black",
+      []
+    ],
+    [
+      "pico:GP8",
+      "r3:1",
+      "yellow",
+      []
+    ],
+    [
+      "r3:2",
+      "ledRun:A",
+      "yellow",
+      []
+    ],
+    [
+      "ledRun:C",
+      "pico:GND.1",
+      "black",
+      []
+    ],
+    [
+      "pico:GP7",
+      "btnFault:1.l",
+      "red",
+      []
+    ],
+    [
+      "btnFault:2.l",
+      "pico:GND.1",
+      "black",
+      []
+    ]
+  ]
+}
