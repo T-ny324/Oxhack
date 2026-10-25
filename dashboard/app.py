@@ -239,6 +239,23 @@ def load_forecast_results() -> dict | None:
         return None
 
 
+SIM_DIR = ROOT / "hardware" / "sim"                        # S1: Abdullah's LTspice work (hardware/sim/README.md)
+
+
+@st.cache_data
+def load_sim_results() -> dict | None:
+    """Hardware track's LTspice evidence: one steady-state operating point per direction
+    (simulation_summary.csv), the per-switching-cycle waveforms (pwm_cycle_metrics.csv) and the circuit
+    values (hardware_config.json). None if any file is missing; the Hardware tab then says so."""
+    import json
+    try:
+        return {"summary": pd.read_csv(SIM_DIR / "data" / "simulation_summary.csv"),
+                "cycles": pd.read_csv(SIM_DIR / "data" / "pwm_cycle_metrics.csv"),
+                "hw": json.loads((SIM_DIR / "hardware_config.json").read_text())}
+    except (FileNotFoundError, ValueError, KeyError):
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Shared parameters (spec + assumptions)
 # ---------------------------------------------------------------------------
@@ -601,7 +618,8 @@ with tab_analysis:
                                 f"yesterday, and captures **{fr['pct_perfect'].get('lear_x', 0):.0f}%** of the "
                                 "saving a perfect forecast would give.")
                 st.caption("Tony's one-year backtest (Oct 2025 – Sep 2026, real GB prices, forecasts issued as if "
-                           f"live). 60 kWh car, 7.4 kW charger; tariff adders {badge('placeholder')}. "
+                           f"live). {ASSUME['e_cap']:g} kWh car, {spec['power']['p_charge_max_kw']:g} kW charger "
+                           f"(converter spec v{spec.get('spec_version', '?')}); tariff adders {badge('placeholder')}. "
                            "More: artefacts/forecasts/FORECAST_MODELS.md", unsafe_allow_html=True)
 
     with lc2:      # §8.B Option B: the habits model
@@ -729,6 +747,72 @@ with tab_hw:
     c2.metric("Installation", f"£{cst.get('install_cost', 0):,}")
     c3.metric("Normal (one-way) charger", f"£{cst.get('unidirectional_baseline_cost', 0):,}")
     c4.metric("Premium for V2G", f"£{premium_spec:,}")
-    st.info("Placeholder spec. Coming from the hardware track: hand calculations → simulation → BOM "
-            "(the `provenance` badge upgrades as it does), the KiCad render, and the design targets the "
-            "analysis sends back (`config/design_targets.yaml`).")
+
+    # --- Hardware track evidence: the LTspice runs in hardware/sim/. Shown next to the spec so the simulated
+    # DC/DC-stage numbers are not mistaken for the full-chain values the optimiser uses.
+    st.markdown("#### What the simulation has pinned down")
+    sim = load_sim_results()
+    if sim is None:
+        st.info("No simulation results found (hardware/sim/data/). The spec above is the contract; the fields "
+                "still marked PLACEHOLDER in `config/converter_spec.yaml` are waiting on the hardware track.")
+    else:
+        hw, summ, cyc = sim["hw"], sim["summary"].set_index("mode"), sim["cycles"]
+        el, sw = hw["electrical"], hw["switching"]
+        t0, t1 = summ["analysis_start_s"].iloc[0] * 1000, summ["analysis_end_s"].iloc[0] * 1000
+        st.caption(f"LTspice, hardware track: {hw['system']['converter_stage_modelled']}; the grid stage is "
+                   f"simulated separately. {el['dc_link_nominal_voltage_v']:.0f} V link, "
+                   f"{el['battery_open_circuit_voltage_v']:.0f} V battery with {el['battery_internal_resistance_ohm']} Ω, "
+                   f"{el['inductance_h'] * 1e6:.0f} µH, {sw['frequency_hz'] / 1000:.0f} kHz, open-loop fixed duty; "
+                   f"steady state averaged over {t0:.0f}–{t1:.0f} ms. "
+                   f"{hw['evidence']['performance_status'].capitalize()}. Details: hardware/sim/README.md.")
+        s1, s2 = st.columns([1, 1.5])
+        with s1:
+            def _row(label, col, scale=1.0, fmt="{:,.2f}"):
+                return [label] + [fmt.format(summ.loc[m, col] * scale) for m in ("G2V", "V2G")]
+            table = pd.DataFrame([
+                _row("Battery terminal voltage (V)", "battery_terminal_voltage_avg_v", fmt="{:,.1f}"),
+                _row("Inductor current, mean (A)", "inductor_current_avg_a"),
+                _row("Inductor ripple, pk-pk (A)", "inductor_current_ripple_pp_a"),
+                _row("Battery terminal power (kW)", "battery_terminal_power_avg_w", 1e-3),
+                _row("DC-link source power (kW)", "dc_link_source_power_avg_w", 1e-3),
+                _row("DC/DC stage loss (W)", "dc_dc_stage_loss_w", fmt="{:,.1f}"),
+                _row("DC/DC stage efficiency (%)", "model_stage_efficiency_percent"),
+            ], columns=["", "G2V charging", "V2G discharging"]).set_index("")
+            st.dataframe(table, width="stretch")
+            st.caption("Signs follow §6.3: + = grid → vehicle. The DC-link figure is the ideal source's, so it is "
+                       "negative while it supplies (G2V). Stage efficiency is the DC/DC stage alone; the spec's "
+                       "rated-load figure multiplies it by the AC/DC stage's own run (hardware/sim/efficiency.md).")
+        with s2:
+            fig = go.Figure()
+            for mode, colour, name in (("G2V", GREEN, "G2V: charging"), ("V2G", AMBER, "V2G: discharging")):
+                d = cyc[cyc["mode"] == mode]
+                fig.add_scatter(x=d["time_start_s"] * 1000, y=d["battery_terminal_power_avg_w"] / 1000,
+                                mode="lines", line=dict(color=colour, width=2), name=name)
+            fig.add_vrect(x0=t0, x1=t1, fillcolor="#EEF2EF", opacity=0.6, line_width=0,
+                          annotation_text="steady-state window", annotation_position="top left")
+            fig.update_layout(title=dict(text="Battery terminal power, one point per switching cycle",
+                                         font=dict(size=14)),
+                              height=330, margin=dict(l=0, r=0, t=40, b=0), plot_bgcolor="white",
+                              xaxis=dict(title="Time (ms)", gridcolor="#EEF2EF"),
+                              yaxis=dict(title="kW (+ charging)", gridcolor="#EEF2EF"),
+                              legend=dict(orientation="h", y=-0.25))
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+    st.markdown("#### Where each spec number comes from")
+    st.markdown(
+        "| Spec field | Source |\n|---|---|\n"
+        f"| Topology; grid side ({spec.get('grid_side', {}).get('v_ac_rms', '—')} V, "
+        f"{spec.get('grid_side', {}).get('f_hz', '—')} Hz); charge and discharge rating "
+        f"({pw.get('p_charge_max_kw', 0):g} kW) | {badge('simulation')} hardware/sim/ltspice/*.asc, "
+        "hardware_config.json |\n"
+        f"| Efficiency at rated load ({spec['efficiency_curve']['eta_charge'][-1] * 100:.1f} % charging, "
+        f"{spec['efficiency_curve']['eta_discharge'][-1] * 100:.1f} % selling) | {badge('simulation')} AC/DC stage × "
+        "DC/DC stage, each simulated on its own with ideal switches (hardware/sim/efficiency.md); an upper estimate |\n"
+        f"| Efficiency at part load (curve shape) | {badge('placeholder')} v0.1 roll-off scaled to the simulated "
+        "rated-load value and capped there |\n"
+        f"| Response time, ramp rate, standby loss | {badge('placeholder')} the runs are open-loop; no step "
+        "response measured |\n"
+        f"| Cost | {badge('placeholder')} no BOM yet (hardware/bom/) |\n"
+        f"| Design targets sent back to hardware | {badge('placeholder')} config/design_targets.yaml, filled by the "
+        "sensitivity sweep |",
+        unsafe_allow_html=True)

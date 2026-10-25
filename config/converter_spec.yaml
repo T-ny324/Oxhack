@@ -1,31 +1,38 @@
 spec_version: "0.1"
-provenance: placeholder        # placeholder | hand_calc | simulation | datasheet | measured
-topology: "DAB (dual active bridge) DC-DC + totem-pole bidirectional AC-DC"   # PLACEHOLDER
+# Field names and units are frozen (CONTEXT.md §6.2), so spec_version stays 0.1. Values updated 2026-10-25 from the hardware
+# track's LTspice work in hardware/sim/ (Abdullah). Provenance is noted per field below; the
+# file-level value is the best source any field has reached.
+provenance: simulation          # placeholder | hand_calc | simulation | datasheet | measured
+topology: "Two-stage: full-bridge bidirectional AC/DC (230 V, 2.2 mH grid inductor, 50 kHz) -> 700 V DC link (1000 uF) -> non-isolated synchronous buck-boost DC/DC (680 uH, 50 kHz) -> 400 V battery"   # SIMULATION: hardware/sim/ltspice/*.asc
 architecture: dc_offboard       # dc_offboard | ac_onboard
 grid_side:
   phases: 1
-  v_ac_rms: 230                 # V
+  v_ac_rms: 230                 # V   SIMULATION (acdc_grid_stage.asc: 325.27 V peak sine, 50 Hz)
   f_hz: 50
 battery_side:
-  v_dc_min: 250                 # V
-  v_dc_max: 450                 # V
+  v_dc_min: 250                 # V   PLACEHOLDER range; the LTspice battery model is 400 V open-circuit + 0.1 ohm
+  v_dc_max: 450                 # V   (800 V platforms -> second variant)
 power:
-  p_charge_max_kw: 7.4          # PLACEHOLDER (single-phase 32 A)
-  p_discharge_max_kw: 7.4       # PLACEHOLDER
-  q_max_kvar: 3.0
-efficiency_curve:
+  p_charge_max_kw: 6.6          # SIMULATION design target: hardware_config.json continuous_power_target_w, AC/DC sim PSET=6600
+  p_discharge_max_kw: 6.6       # same target both ways; the open-loop DC/DC sim carried 8.7-9.0 kW, so this is a rating, not a stage limit
+  q_max_kvar: 3.0               # PLACEHOLDER reactive power capability (voltage support)
+efficiency_curve:               # grid-to-battery and battery-to-grid, vs fraction of rated power
   load_fraction:   [0.05, 0.10, 0.25, 0.50, 0.75, 1.00]
-  eta_charge:      [0.80, 0.88, 0.94, 0.96, 0.96, 0.955]   # PLACEHOLDER
-  eta_discharge:   [0.78, 0.87, 0.93, 0.955, 0.955, 0.95]  # PLACEHOLDER
-standby_w: 10
+  eta_charge:      [0.8168, 0.8984, 0.9597, 0.975, 0.975, 0.975]   # rated-load value SIMULATION, part-load shape PLACEHOLDER
+  eta_discharge:   [0.8001, 0.8924, 0.954, 0.9745, 0.9745, 0.9745]   # rated-load value SIMULATION, part-load shape PLACEHOLDER
+  # Rated-load (1.00) value = AC/DC stage x DC/DC stage, each from its own LTspice run (hardware/sim/efficiency.md):
+  # G2V 0.9771 x 0.9979 = 0.975, V2G 0.9766 x 0.9979 = 0.9745. The stages were simulated separately with
+  # ideal switch models, so this is an upper estimate. Part-load points keep the v0.1 placeholder roll-off,
+  # scaled to meet the simulated rated-load value and capped there so no point exceeds what was simulated.
+standby_w: 10                   # PLACEHOLDER idle loss while plugged in
 dynamics:
-  response_time_s: 1.0
-  ramp_kw_per_s: 5.0
+  response_time_s: 1.0          # PLACEHOLDER setpoint -> 90% power; the sims are open-loop (fixed duty) or behavioural
+  ramp_kw_per_s: 5.0            # PLACEHOLDER
 cost:
-  bom_cost: 900                 # PLACEHOLDER
+  bom_cost: 900                 # PLACEHOLDER, from BOM in hardware/bom/bom.csv
   install_cost: 500             # ASSUMPTION
-  unidirectional_baseline_cost: 800
+  unidirectional_baseline_cost: 800   # cost of a normal charger -> premium = (bom+install) - baseline
 lifetime_years: 10
-uncertainty:
+uncertainty:                    # +- bands used in the sensitivity analysis
   eta_abs: 0.01
   cost_rel: 0.25

@@ -20,10 +20,12 @@ def test_app_runs_all_modes():
     assert not at.exception
 
 
-# The owner view at default settings, before and after moving the optimiser into src/.
-OWNER_METRICS = {"Savings vs a normal charger": "£1,410/yr",
-                 "…of which needs our bidirectional hardware": "£307/yr",
-                 "Cost of peace of mind": "£477/yr"}
+# The owner view at default settings with the converter spec at provenance "simulation" (6.6 kW, 97.5 % at
+# rated load; hardware/sim). They were £1,410 / £307 / £477 with the placeholder spec (7.4 kW, 95.5 %);
+# a spec change moves them, a refactor must not.
+OWNER_METRICS = {"Savings vs a normal charger": "£1,393/yr",
+                 "…of which needs our bidirectional hardware": "£321/yr",
+                 "Cost of peace of mind": "£410/yr"}
 
 
 def owner_metrics(at):
