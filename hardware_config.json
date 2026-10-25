@@ -1,0 +1,81 @@
+{
+  "project": "Intelligent Bidirectional EV Energy Storage System",
+  "schema_version": "1.0.0",
+  "system": {
+    "architecture": "grid AC/DC converter > 700 V DC link > bidirectional DC/DC converter > EV battery",
+    "converter_stage_modelled": "non-isolated, synchronous bidirectional buck-boost DC/DC",
+    "grid_stage_modelled": false,
+    "nominal_battery_energy_wh": 60000,
+    "continuous_power_target_w": 6600,
+    "additional_test_power_target_w": 7000
+  },
+  "electrical": {
+    "dc_link_nominal_voltage_v": 700.0,
+    "battery_open_circuit_voltage_v": 400.0,
+    "battery_internal_resistance_ohm": 0.1,
+    "dc_link_capacitance_f": 0.001,
+    "battery_side_capacitance_f": 0.00047,
+    "inductance_h": 0.00068
+  },
+  "switching": {
+    "topology": "high-side SH and low-side SL voltage-controlled switches; antiparallel diodes D2 and D3",
+    "frequency_hz": 50000,
+    "period_s": 2e-05,
+    "dead_time_s": 1e-07,
+    "high_side_and_low_side_switch_model": {
+      "model_name": "SWPOWER",
+      "on_resistance_ohm": 0.04,
+      "off_resistance_ohm": 100000000.0,
+      "threshold_voltage_v": 2.5,
+      "hysteresis_voltage_v": 0.1
+    },
+    "diode_model": {
+      "model_name": "DFAST",
+      "saturation_current_a": 1e-09,
+      "series_resistance_ohm": 0.02,
+      "emission_coefficient": 1.2,
+      "breakdown_voltage_v": 1200,
+      "junction_capacitance_f": 3e-11,
+      "transit_time_s": 0
+    }
+  },
+  "control": {
+    "simulation_method": "open-loop complementary PWM with dead time",
+    "mode_selection_parameter": "MODE",
+    "modes": {
+      "G2V": {
+        "mode_parameter_value": 0,
+        "buck_duty_cycle_fraction": 0.5797,
+        "inductor_current_direction": "positive"
+      },
+      "V2G": {
+        "mode_parameter_value": 1,
+        "boost_duty_cycle_fraction": 0.437,
+        "inductor_current_direction": "negative"
+      }
+    },
+    "controller_hardware_for_integration": "Raspberry Pi Pico 2 W",
+    "suggested_battery_power_request_sign": "positive = charge (G2V), negative = discharge (V2G)",
+    "regulated_current_target_formula": "I_ref_A = requested_battery_power_W / measured_battery_terminal_voltage_V"
+  },
+  "telemetry_conventions": {
+    "battery_terminal_power_w": "V(bat) * I(L1): positive charging, negative discharging",
+    "dc_link_source_power_w": "V(bus) * I(V1): negative DC-link source supplying energy (G2V), positive DC-link source absorbing energy (V2G)",
+    "battery_cell_source_power_w": "400 * I(V2): positive charging, negative discharging",
+    "sampling_window_steady_state_s": [
+      0.04,
+      0.06
+    ],
+    "switching_cycle_averages_s": 2e-05
+  },
+  "data_files": {
+    "steady_state_summary": "data/simulation_summary.csv",
+    "per_switching_cycle": "data/pwm_cycle_metrics.csv"
+  },
+  "evidence": {
+    "schematic": "ltspice/combined_bidirectional.asc",
+    "dc_link_baseline_schematic": "ltspice/dc_link_baseline.asc",
+    "simulation_data_origin": "LTspice exported current/voltage traces supplied with project",
+    "performance_status": "simulated operating points, not rated hardware limits"
+  }
+}
