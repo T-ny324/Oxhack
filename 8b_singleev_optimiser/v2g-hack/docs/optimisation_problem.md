@@ -53,6 +53,17 @@ Battery wear is **out of scope** for the optimiser (the hardware side handles it
 Same objective, same solver; the option only changes constraint 5.
 The £ difference between A and B is the **"cost of peace of mind"** — a nice demo number.
 
+**In code (app setting, §8.B.1):** `config/assumptions.yaml` → `optimiser.mode`
+(`max_savings` | `guaranteed_charge`) and `optimiser.target_soc`. `daily.floor_for_mode()` is the
+one place the setting enters the optimiser (registry `daily.MODES`); it works with perfect
+(`mode_floor_builder`) and predicted habits (`plan_inputs_from_predictions(mode=...)`).
+- `max_savings` = option B: next trip + reserve at each departure (soft floor, £5/kWh penalty).
+- `guaranteed_charge` = option A, "always ready": SoC ≥ target whenever plugged in, plus the
+  trip floor. A superset of max_savings' constraints, so it never saves more.
+- §12 checks are tests (`tests/test_app_modes.py`): target met at 100 % of departures (also with
+  wrong predictions), max_savings ≥ guaranteed savings, raising the target never increases savings.
+- Slider demo: `python scripts/test_one_car.py --sweep` prints target % vs £/week for one real car.
+
 ## Option B: the habits model (discriminative ML) — implemented, see "Habits model: results"
 
 ### What it does

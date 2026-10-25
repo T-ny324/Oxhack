@@ -30,3 +30,8 @@ optimiser:
   reopt_every_steps: 1          # MPC re-solve cadence (also re-solves on every arrival)
   rule_discharge_slots: 4       # rule-based timer: discharge in the k most expensive slots per session
   price_source: forecast        # forecast (S3 P50, else seasonal naive) | perfect
+  # App setting (§8.B.1): which version of the driver's-needs constraint the optimiser uses.
+  #   max_savings       : hold the next (learned) trip + reserve at each departure; soft floor
+  #   guaranteed_charge : also SoC >= target_soc whenever plugged in; sells only above target
+  mode: max_savings             # max_savings | guaranteed_charge
+  target_soc: 0.80              # guaranteed_charge only: the driver's chosen minimum (fraction)

@@ -105,8 +105,8 @@ def floor_learned(H: int, departures: list, params: VehicleParams,
     PREDICTED trip plus a reserve:  SoC >= soc_min + trip_kWh / E_cap + reserve.
     Between trips the only floor is soc_min, which gives the optimiser more room to sell.
 
-    `departures` will come from the habits ML model (not built yet). Until then the demo
-    passes the true trips ("perfect prediction"), labelled as such.
+    `departures` come from the habits model (v2g.habits.predict), or from the true trips
+    for a "perfect prediction" run (labelled as such).
     """
     f = np.full(H + 1, params.soc_min)
     for k, trip in departures:
@@ -114,6 +114,48 @@ def floor_learned(H: int, departures: list, params: VehicleParams,
             f[k] = max(f[k], min(params.soc_max,
                                  params.soc_min + trip / params.e_cap_kwh + reserve))
     return f
+
+
+# ========================================================================= app modes
+# The app setting (§8.B.1, config `optimiser.mode` / `optimiser.target_soc`) picks how the
+# driver's-needs floor is built. Same objective, same solver: the mode ONLY changes the
+# floor. Both are soft floors in lp.py (£5/kWh penalty): met whenever physically possible,
+# and an impossible day (car arrives nearly empty just before it's needed) still gets a
+# "charge flat out" schedule instead of an error.
+
+def _floor_max_savings(plugged, departures, params, target_soc, reserve):
+    """Max savings: only the next trip + reserve at each departure. Most freedom, most £."""
+    return floor_learned(len(plugged), departures, params, reserve)
+
+
+def _floor_guaranteed_charge(plugged, departures, params, target_soc, reserve):
+    """Savings + guaranteed charge: SoC >= target whenever the car is plugged in ("always
+    ready", §8.B.1 option b), so selling only ever uses energy above the target. The trip
+    floor is kept too (max of both), for a trip that needs more than the target. Its
+    constraints are a superset of max_savings, so it can never save more."""
+    return np.maximum(floor_set_minimum(plugged, target_soc, params),
+                      floor_learned(len(plugged), departures, params, reserve))
+
+
+MODES = {"max_savings": _floor_max_savings, "guaranteed_charge": _floor_guaranteed_charge}
+
+
+def floor_for_mode(mode: str, plugged: np.ndarray, departures: list, params: VehicleParams,
+                   target_soc: float = 0.80, reserve: float = 0.10) -> np.ndarray:
+    """The ONE place the app setting enters the optimiser. plugged: bool per slot (H);
+    departures: [(slot, trip kWh)] in the window. Returns floor_soc (H + 1 points)."""
+    if mode not in MODES:
+        raise ValueError(f"unknown app mode {mode!r}; expected one of {sorted(MODES)}")
+    return MODES[mode](np.asarray(plugged, bool), departures, params, target_soc, reserve)
+
+
+def mode_floor_builder(mode: str, trace: Trace, params: VehicleParams,
+                       target_soc: float = 0.80) -> "FloorBuilder":
+    """FloorBuilder for run_daily from a known trace (true trips = "perfect prediction")."""
+    def build(i: int, j: int) -> np.ndarray:
+        deps = [(d - i, e) for d, e in trace.departures if i < d <= j]
+        return floor_for_mode(mode, trace.plugged[i:j], deps, params, target_soc)
+    return build
 
 
 # ======================================================================= daily loop
