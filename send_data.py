@@ -4,7 +4,7 @@ import time
 import paho.mqtt.client as mqtt
 
 # Must be the SAME broker the Pico and receive_data.py use (see the Pico's [mqtt] connecting... log).
-BROKER = os.environ.get("MQTT_BROKER", "broker.hivemq.com")
+BROKER = os.environ.get("MQTT_BROKER", "test.mosquitto.org")
 PORT = 1883
 INPUT_TOPIC = "v2g/oxhack-4000/input"
 SEND_EVERY_SECONDS = 2   # keep under 5 s: the Pico drops a SET_POWER after 5 s
