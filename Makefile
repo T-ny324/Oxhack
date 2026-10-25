@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: install format lint test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke all
+.PHONY: install format lint test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke forecast-validate forecast-lear-x forecast-lear-x-smoke all
 
 install:
 	$(PYTHON) -m pip install -U pip
@@ -40,6 +40,17 @@ forecast-naive:
 forecast-lear:
 	$(PYTHON) -m v2g.forecast.lear --window backtest
 	$(PYTHON) -m v2g.forecast.evaluate --window backtest --out artefacts/forecasts/eval_lear.csv
+
+forecast-validate:
+	$(PYTHON) -m v2g.forecast.validate --models lear,lear_x --criteria aic,bic --recalibrate-every 7
+
+forecast-lear-x:
+	$(PYTHON) -m v2g.forecast.lear --window backtest --model-name lear_x --recalibrate-every 7 --diagnostics artefacts/forecasts/lear_x_diagnostics.parquet --top-features artefacts/forecasts/lear_x_top_features.csv --feature-groups artefacts/forecasts/lear_x_feature_groups.csv
+	$(PYTHON) -m v2g.forecast.evaluate --window backtest --out artefacts/forecasts/eval_lear.csv
+
+forecast-lear-x-smoke:
+	$(PYTHON) -m v2g.forecast.lear --window smoke --model-name lear_x --recalibrate-every 7 --out artefacts/forecasts/price_quantiles_smoke.parquet --diagnostics artefacts/forecasts/lear_x_diagnostics_smoke.parquet --top-features artefacts/forecasts/lear_x_top_features_smoke.csv --feature-groups artefacts/forecasts/lear_x_feature_groups_smoke.csv
+	$(PYTHON) -m v2g.forecast.evaluate --window smoke --forecasts artefacts/forecasts/price_quantiles_smoke.parquet --out artefacts/forecasts/eval_lear_smoke.csv
 
 forecast-lear-smoke:
 	$(PYTHON) -m v2g.forecast.lear --window smoke --out artefacts/forecasts/price_quantiles_smoke.parquet --diagnostics artefacts/forecasts/lear_diagnostics_smoke.parquet --top-features artefacts/forecasts/lear_top_features_smoke.csv
