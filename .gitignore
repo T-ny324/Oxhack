@@ -161,3 +161,6 @@ venv/
 data/raw/
 data/processed/
 artefacts/
+
+# macOS Finder metadata
+.DS_Store

@@ -1,0 +1,12 @@
+{
+  // Use the project's Python 3.12 venv (system python3 is 3.9 with no pandas).
+  "python.defaultInterpreterPath": "${workspaceFolder}/8b_singleev_optimiser/v2g-hack/.venv/bin/python",
+  // Let Pylance find `shared` and `v2g` (scripts add these to sys.path at runtime).
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/8b_singleev_optimiser/v2g-hack",
+    "${workspaceFolder}/8b_singleev_optimiser/v2g-hack/src"
+  ],
+  // Run Python files from the project folder so relative paths behave the same as in the terminal.
+  "python.terminal.executeInFileDir": false,
+  "python.terminal.activateEnvironment": true
+}

@@ -1,0 +1,76 @@
+{
+  "config": {
+    "tz": "Europe/London",
+    "max_away_days": 14,
+    "test_vehicle_frac": 0.2,
+    "val_week_frac": 0.2,
+    "seed": 0,
+    "asym_weight_w": 9.0,
+    "shortfall_tol_kwh": 1.0,
+    "shortfall_tol_h": 0.25
+  },
+  "quantiles": {
+    "y_trip_kwh": 0.9,
+    "y_plugout_h": 0.1,
+    "y_plugin_h": 0.9
+  },
+  "picked": {
+    "classifier": "lgbm",
+    "y_plugin_h": "lgbm",
+    "y_plugout_h": "lgbm",
+    "y_trip_kwh": "lgbm"
+  },
+  "lgb_params": {
+    "n_estimators": 300,
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_child_samples": 50,
+    "subsample": 0.8,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "verbose": -1
+  },
+  "linear_sample": 10000,
+  "fit_seconds": {
+    "linear": {
+      "classifier": 0.23527908325195312,
+      "y_trip_kwh": 7.657375812530518,
+      "y_plugout_h": 7.5829761028289795,
+      "y_plugin_h": 7.598780155181885
+    },
+    "lgbm": {
+      "classifier": 1.5654199123382568,
+      "y_trip_kwh": 1.449315071105957,
+      "y_plugout_h": 1.4420239925384521,
+      "y_plugin_h": 1.4149680137634277
+    }
+  },
+  "features": [
+    "dow",
+    "is_weekend",
+    "bank_holiday",
+    "lw_bank_holiday",
+    "month",
+    "lw_plugs_in",
+    "lw_plugin_h",
+    "lw_plugout_h",
+    "lw_trip_kwh",
+    "lw_energy_day",
+    "lw_still_plugged",
+    "pw_plugin_days",
+    "pw_sessions",
+    "pw_weekday_plugin_days",
+    "pw_plugin_h_mean",
+    "pw_plugin_h_std",
+    "pw_plugin_h_median",
+    "pw_plugout_h_mean",
+    "pw_plugout_h_std",
+    "pw_plugout_h_median",
+    "pw_trip_kwh_mean",
+    "pw_trip_kwh_std",
+    "pw_trip_kwh_median",
+    "pw_trip_kwh_max",
+    "pw_energy_kwh",
+    "still_plugged_at_start"
+  ]
+}

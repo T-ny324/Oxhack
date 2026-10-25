@@ -1,0 +1,32 @@
+# Global assumptions (S0). Values marked ASSUMPTION are placeholders to be replaced.
+region: GB
+currency: GBP
+timezone_local: Europe/London   # habits (plug-in times) are learned in local time; data is UTC internally
+dt_h: 0.5                       # must match the price settlement period
+
+battery:
+  e_cap_kwh: 60                 # ASSUMPTION typical mid-size pack
+  soc_min: 0.20                 # V2G floor: the optimiser never discharges below this
+  soc_max: 0.90                 # charge limit
+  soc_initial: 0.60
+  soc_departure_default: 0.60   # driver's "ready by" SoC unless the session says otherwise
+  eta_batt_rt: 0.95             # battery round-trip efficiency (split evenly charge/discharge)
+  # linear degradation (8.C step 1): c_deg = battery_cost / (cycle_life * 2 * E_cap * DoD)
+  battery_cost_per_kwh: 100     # ASSUMPTION currency/kWh of pack
+  cycle_life: 3000              # ASSUMPTION full equivalent cycles
+  dod: 0.8
+
+tariff:
+  # buy  = wholesale + import_adder ; sell = wholesale + export_adder   (currency/MWh)
+  # This is the "double fee" / policy toggle (D-l). PLACEHOLDER values.
+  import_adder_per_mwh: 15
+  export_adder_per_mwh: -5
+
+optimiser:
+  eval_days: 28                 # evaluation window (most recent days of data)
+  history_days: 14              # days before the window used for learning habits + naive forecast
+  eta_load_fraction: 1.0        # operating point at which the spec efficiency curve is read
+  horizon_steps: 48             # MPC look-ahead (48 x 30 min = 24 h)
+  reopt_every_steps: 1          # MPC re-solve cadence (also re-solves on every arrival)
+  rule_discharge_slots: 4       # rule-based timer: discharge in the k most expensive slots per session
+  price_source: forecast        # forecast (S3 P50, else seasonal naive) | perfect

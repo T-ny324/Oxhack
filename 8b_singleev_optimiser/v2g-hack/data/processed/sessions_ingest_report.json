@@ -1,0 +1,51 @@
+{
+  "readings_raw": 16696926,
+  "readings_dropped_duplicate": 719605,
+  "readings_dropped_impossible_amps": 21,
+  "readings_kept": 15977300,
+  "tx_splits_at_silent_gap": 198,
+  "sessions_from_readings": 69104,
+  "sessions_untagged": 6075,
+  "sessions_merged_away": 6489,
+  "dropped_departure_le_arrival": 0,
+  "dropped_under_min_duration": 458,
+  "dropped_overlap": 0,
+  "sessions_final": 62157,
+  "vehicles": 328,
+  "first_arrival_utc": "2017-03-16 17:59:00+00:00",
+  "last_departure_utc": "2018-12-17 00:02:00+00:00",
+  "zero_energy_sessions": 1233,
+  "exactly_0_kwh_sessions": 1064,
+  "zero_energy_duration_h_q": [
+    0.3,
+    0.87,
+    2.87,
+    10.2,
+    16.03
+  ],
+  "duration_h_q": [
+    1.3,
+    4.08,
+    11.73,
+    15.43,
+    20.83
+  ],
+  "energy_kwh_q": [
+    1.87,
+    4.22,
+    7.12,
+    13.51,
+    23.22
+  ],
+  "sessions_over_72h": 502,
+  "trip_kwh_next_nan": 339,
+  "config": {
+    "voltage_v": 230.0,
+    "max_amps": 35.0,
+    "tx_split_gap_min": 360.0,
+    "untagged_gap_min": 15.0,
+    "merge_gap_min": 10.0,
+    "min_duration_min": 5.0,
+    "min_charge_kwh": 0.1
+  }
+}

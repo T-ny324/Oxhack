@@ -1,0 +1,144 @@
+{
+  "test_metrics": {
+    "baseline": {
+      "plug_accuracy": 0.625422324217505,
+      "plug_precision": 0.5950413223140496,
+      "plug_recall": 0.5953693495038589,
+      "plug_false_alarm_rate": 0.34871308267109474,
+      "plug_brier": 0.37457767578249507,
+      "plug_auc": 0.6233281334163822,
+      "n_departures": 7223,
+      "shortfall_rate": 0.6293783746365776,
+      "energy_short_rate": 0.426554063408556,
+      "early_departure_rate": 0.38045133600996817,
+      "mean_shortfall_kwh": 9.68840447744239,
+      "mean_early_departure_h": 9.15234109655507,
+      "late_plugin_rate": 0.4966080575937976,
+      "pinball_trip_kwh": 4.026665027412433,
+      "coverage_trip_kwh": 0.4615810605011768,
+      "pinball_plugout_h": 3.637938414324611,
+      "coverage_plugout_h": 0.5248511698740136,
+      "pinball_plugin_h": 1.7320479717568877,
+      "coverage_plugin_h": 0.5033919424062024,
+      "mean_pred_trip_kwh": 11.32616031288938,
+      "mean_actual_trip_kwh": 12.871297765471411
+    },
+    "linear": {
+      "plug_accuracy": 0.6626506024096386,
+      "plug_precision": 0.6558730158730158,
+      "plug_recall": 0.5694597574421169,
+      "plug_false_alarm_rate": 0.25714624599691616,
+      "plug_brier": 0.21528539589668483,
+      "plug_auc": 0.7039184141138188,
+      "n_departures": 7223,
+      "shortfall_rate": 0.17873459781254328,
+      "energy_short_rate": 0.08915962896303475,
+      "early_departure_rate": 0.10328118510314274,
+      "mean_shortfall_kwh": 8.067834910489857,
+      "mean_early_departure_h": 6.237764575265139,
+      "late_plugin_rate": 0.10411186487609027,
+      "pinball_trip_kwh": 1.6531099520482728,
+      "coverage_trip_kwh": 0.8852277447044165,
+      "pinball_plugout_h": 1.780953759572909,
+      "coverage_plugout_h": 0.8906271632285754,
+      "pinball_plugin_h": 0.5475792426137841,
+      "coverage_plugin_h": 0.8958881351239097,
+      "mean_pred_trip_kwh": 22.086258865544124,
+      "mean_actual_trip_kwh": 12.871297765471411
+    },
+    "lgbm": {
+      "plug_accuracy": 0.662905590616434,
+      "plug_precision": 0.6593780369290574,
+      "plug_recall": 0.5610529217199559,
+      "plug_false_alarm_rate": 0.24943660301269127,
+      "plug_brier": 0.21436163500191008,
+      "plug_auc": 0.7073425963692296,
+      "n_departures": 7223,
+      "shortfall_rate": 0.19299460058147583,
+      "energy_short_rate": 0.09511283400249204,
+      "early_departure_rate": 0.11463380866675897,
+      "mean_shortfall_kwh": 8.198483729238848,
+      "mean_early_departure_h": 5.963053773810902,
+      "late_plugin_rate": 0.13221653052748167,
+      "pinball_trip_kwh": 1.5903409948581835,
+      "coverage_trip_kwh": 0.8713830818219577,
+      "pinball_plugout_h": 1.7330870555780526,
+      "coverage_plugout_h": 0.870275508791361,
+      "pinball_plugin_h": 0.5321299972906414,
+      "coverage_plugin_h": 0.8677834694725184,
+      "mean_pred_trip_kwh": 20.820918628686837,
+      "mean_actual_trip_kwh": 12.871297765471411
+    }
+  },
+  "cost_of_caution": {
+    "baseline": {
+      "saving_gbp_per_week": 3.1792,
+      "export_kwh_per_week": 54.7607,
+      "departures": 221,
+      "shortfall_rate": 0.1719,
+      "mean_shortfall_kwh": 11.7865,
+      "cost_of_caution_gbp_per_week": 0.7273,
+      "share_of_perfect_savings": 0.8138
+    },
+    "baseline_always_ready": {
+      "saving_gbp_per_week": 2.3941,
+      "export_kwh_per_week": 44.007,
+      "departures": 221,
+      "shortfall_rate": 0.1222,
+      "mean_shortfall_kwh": 11.1447,
+      "cost_of_caution_gbp_per_week": 1.5124,
+      "share_of_perfect_savings": 0.6129
+    },
+    "lgbm": {
+      "saving_gbp_per_week": 1.9929,
+      "export_kwh_per_week": 29.8306,
+      "departures": 221,
+      "shortfall_rate": 0.0407,
+      "mean_shortfall_kwh": 10.9398,
+      "cost_of_caution_gbp_per_week": 1.9136,
+      "share_of_perfect_savings": 0.5101
+    },
+    "lgbm_always_ready": {
+      "saving_gbp_per_week": 1.3994,
+      "export_kwh_per_week": 20.1242,
+      "departures": 221,
+      "shortfall_rate": 0.0226,
+      "mean_shortfall_kwh": 10.2635,
+      "cost_of_caution_gbp_per_week": 2.5071,
+      "share_of_perfect_savings": 0.3582
+    },
+    "perfect": {
+      "saving_gbp_per_week": 3.9065,
+      "export_kwh_per_week": 65.141,
+      "departures": 221,
+      "shortfall_rate": 0.0226,
+      "mean_shortfall_kwh": 7.3974,
+      "cost_of_caution_gbp_per_week": 0.0,
+      "share_of_perfect_savings": 1.0
+    },
+    "unmanaged": {
+      "saving_gbp_per_week": 0.0,
+      "export_kwh_per_week": 0.0,
+      "departures": 221,
+      "shortfall_rate": 0.0045,
+      "mean_shortfall_kwh": 4.0788,
+      "cost_of_caution_gbp_per_week": 3.9065,
+      "share_of_perfect_savings": 0.0
+    }
+  },
+  "simulation_notes": {
+    "skipped_infeasible": [
+      [
+        "UK-GFX-ENA0083",
+        "2018-07-30"
+      ]
+    ],
+    "trips_capped_at_usable": 10,
+    "usable_kwh": 42.0
+  },
+  "config": {
+    "asym_weight_w": 9.0,
+    "shortfall_tol_kwh": 1.0,
+    "shortfall_tol_h": 0.25
+  }
+}
