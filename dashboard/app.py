@@ -36,6 +36,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / "src")]
 
 from shared.schema import Assumptions  # noqa: E402
 from shared.units import p_per_kwh_to_per_mwh, per_mwh_to_per_kwh  # noqa: E402
+from v2g.control import schedule_sender as ss  # noqa: E402
 from v2g.optimise import lp  # noqa: E402
 
 DT_H = 0.5                      # the app's half-hour grid (must match assumptions.yaml dt_h)
@@ -254,6 +255,194 @@ def load_sim_results() -> dict | None:
                 "hw": json.loads((SIM_DIR / "hardware_config.json").read_text())}
     except (FileNotFoundError, ValueError, KeyError):
         return None
+
+
+SCHEDULE_PARQUET = ROOT / "artefacts" / "schedules" / "lear_x.parquet"   # S5 output the firmware executes
+LED_BASE_KW, LED_DUTY_MAX = 7.4, 80.0        # power_stage.c: DEMO_POWER_BASE_KW, DUTY_MAX_PERCENT
+
+
+@st.cache_data
+def schedule_date_range() -> tuple | None:
+    """London dates covered by the lear_x schedule, for the day picker. None if the artefact is missing."""
+    try:
+        issues = pd.DatetimeIndex(pd.read_parquet(SCHEDULE_PARQUET, columns=["issue_time_utc"])["issue_time_utc"].unique())
+    except (FileNotFoundError, ValueError, KeyError):
+        return None
+    local = issues.tz_convert("Europe/London").date
+    return min(local), max(local)
+
+
+@st.cache_data
+def load_led_day(date_iso: str) -> list[dict] | None:
+    """One London day of the lear_x optimiser's schedule as the exact firmware commands that
+    src/v2g/control/schedule_sender.py publishes, plus the LED duty power_stage.c derives from each.
+    None if the artefact is missing or the day is outside it."""
+    try:
+        df = ss.load_schedule("lear_x", SCHEDULE_PARQUET)
+        issue = ss.pick_issue(df, date_iso)
+        points = ss.setpoints_for_issue(df, issue, ss.load_spec())
+    except (FileNotFoundError, ValueError, KeyError, SystemExit):
+        return None
+    day = df[df["issue_time_utc"] == issue]
+    return [{"t": p.ts_utc.tz_convert("Europe/London").strftime("%a %H:%M"), "mode": p.mode, "kw": p.power_kw,
+             "duty": round(min(p.power_kw / LED_BASE_KW, 1.0) * LED_DUTY_MAX), "payload": p.payload,
+             "soc": round(float(soc), 3), "plugged": bool(plugged)}
+            for p, soc, plugged in zip(points, day["soc"], day["plugged"])]
+
+
+def led_animation_html(slots: list[dict]) -> str:
+    """Three LEDs as the Pico drives them (power_stage.c): green GP2 while charging, blue GP4 while
+    discharging, brightness = PWM duty; yellow GP8 RUN whenever either is lit; a short neutral gap on
+    reversal. Pure HTML/JS so it animates without rerunning the app."""
+    import json
+    data = json.dumps(slots)
+    return f"""
+<div id="v2g" style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:{INK};padding:4px 2px">
+ <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+  <svg width="330" height="150" viewBox="0 0 330 150" aria-label="Pico LEDs">
+   <defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter></defs>
+   <rect x="6" y="6" width="318" height="138" rx="14" fill="#10251A"/>
+   <text x="165" y="28" fill="#9FB8A8" font-size="11" text-anchor="middle">RASPBERRY PI PICO 2 W · logic-level indicator LEDs</text>
+   <g id="led-ch"><circle cx="70" cy="78" r="26" fill="{GREEN}" filter="url(#glow)" opacity=".08"/><circle cx="70" cy="78" r="18" fill="{GREEN}" opacity=".15"/></g>
+   <g id="led-dis"><circle cx="165" cy="78" r="26" fill="#3B82F6" filter="url(#glow)" opacity=".08"/><circle cx="165" cy="78" r="18" fill="#3B82F6" opacity=".15"/></g>
+   <g id="led-run"><circle cx="260" cy="78" r="26" fill="{AMBER}" filter="url(#glow)" opacity=".08"/><circle cx="260" cy="78" r="18" fill="{AMBER}" opacity=".15"/></g>
+   <text x="70" y="124" fill="#DCE8DF" font-size="11" text-anchor="middle">GP2 · charging</text>
+   <text x="165" y="124" fill="#DCE8DF" font-size="11" text-anchor="middle">GP4 · selling to grid</text>
+   <text x="260" y="124" fill="#DCE8DF" font-size="11" text-anchor="middle">GP8 · RUN</text>
+  </svg>
+  <div style="min-width:260px;flex:1">
+   <div id="clock" style="font-size:30px;font-weight:800;letter-spacing:-.02em"></div>
+   <div id="mode" style="font-size:15px;margin:2px 0 6px 0"></div>
+   <div style="font-size:12px;color:{MUTED}">MQTT · v2g/oxhack-4000/setpoint</div>
+   <code id="payload" style="display:block;font-size:12px;background:#F3F7F4;border-radius:8px;padding:6px 8px;margin:2px 0 6px 0"></code>
+   <div id="duty" style="font-size:13px"></div>
+  </div>
+ </div>
+ <div style="display:flex;gap:12px;align-items:center;margin:10px 0 4px 0;flex-wrap:wrap">
+  <button id="play" style="background:{GREEN};color:#fff;border:0;border-radius:999px;padding:6px 16px;font-weight:700;cursor:pointer">▶ Play</button>
+  <label style="font-size:12px">speed <select id="speed" style="font-size:12px"><option value="700">0.7 s per half-hour</option><option value="350">0.35 s</option><option value="1400">1.4 s</option></select></label>
+  <input id="pos" type="range" min="0" max="{len(slots) - 1}" value="0" style="flex:1;min-width:160px">
+ </div>
+ <div id="timeline" style="display:flex;gap:2px;align-items:flex-end;height:46px;margin-top:6px"></div>
+ <div style="display:flex;justify-content:space-between;font-size:11px;color:{MUTED}"><span>{slots[0]["t"] if slots else ""}</span><span>{slots[len(slots) // 2]["t"] if slots else ""}</span><span>{slots[-1]["t"] if slots else ""}</span></div>
+</div>
+<script>
+(function() {{
+  const D = {data}, BASE = {LED_BASE_KW}, DMAX = {LED_DUTY_MAX};
+  const $ = id => document.getElementById(id);
+  const leds = {{ch: $("led-ch"), dis: $("led-dis"), run: $("led-run")}};
+  const tl = $("timeline"); let i = 0, timer = null, last = null;
+  D.forEach((s, k) => {{
+    const b = document.createElement("div"); b.style.flex = "1"; b.style.cursor = "pointer"; b.style.borderRadius = "2px";
+    b.style.height = Math.max(4, s.duty / DMAX * 44) + "px";
+    b.style.background = s.mode === "CHARGE" ? "{GREEN}" : s.mode === "DISCHARGE" ? "#3B82F6" : "#D7E2DA";
+    b.title = s.t + "  " + s.mode + " " + s.kw + " kW"; b.onclick = () => {{ i = k; render(true); }};
+    tl.appendChild(b);
+  }});
+  function set(g, on, frac) {{ const [glow, core] = g.children; glow.setAttribute("opacity", on ? 0.25 + 0.65 * frac : 0.08); core.setAttribute("opacity", on ? 0.45 + 0.55 * frac : 0.15); }}
+  function off() {{ set(leds.ch, false, 0); set(leds.dis, false, 0); set(leds.run, false, 0); }}
+  function paint(s) {{
+    const frac = s.duty / DMAX;
+    off();
+    if (s.mode === "CHARGE") set(leds.ch, true, frac);
+    if (s.mode === "DISCHARGE") set(leds.dis, true, frac);
+    if (s.mode !== "STOP") set(leds.run, true, 1);
+    $("clock").textContent = s.t;
+    $("mode").innerHTML = s.mode === "CHARGE" ? "<b style='color:{GREEN_DARK}'>Charging</b> " + s.kw.toFixed(1) + " kW from the grid"
+      : s.mode === "DISCHARGE" ? "<b style='color:#1D4ED8'>Selling to the grid</b> " + s.kw.toFixed(1) + " kW"
+      : (s.plugged ? "<b>Idle</b>, plugged in" : "<b>Idle</b>, car away");
+    $("payload").textContent = s.payload;
+    $("duty").textContent = "PWM duty " + s.duty + " % (|P| / " + BASE + " kW × " + DMAX + " %) · battery " + Math.round(s.soc * 100) + " %";
+    Array.from(tl.children).forEach((b, k) => b.style.outline = k === i ? "2px solid {INK}" : "none");
+    $("pos").value = i;
+  }}
+  function render(jump) {{
+    const s = D[i];
+    if (!jump && last && last.mode !== s.mode && last.mode !== "STOP" && s.mode !== "STOP") {{
+      off(); setTimeout(() => paint(s), 160);        // the firmware's neutral interval on reversal, stretched to be visible
+    }} else paint(s);
+    last = s;
+  }}
+  function stop() {{ clearInterval(timer); timer = null; $("play").textContent = "▶ Play"; }}
+  $("play").onclick = () => {{
+    if (timer) return stop();
+    if (i >= D.length - 1) i = 0;
+    $("play").textContent = "❚❚ Pause";
+    timer = setInterval(() => {{ if (i >= D.length - 1) return stop(); i++; render(false); }}, +$("speed").value);
+  }};
+  $("speed").onchange = () => {{ if (timer) {{ stop(); $("play").onclick(); }} }};
+  $("pos").oninput = e => {{ i = +e.target.value; render(true); }};
+  render(true);
+}})();
+</script>"""
+
+
+def chain_diagram_svg() -> str:
+    """The pipeline from market data to the LEDs as six blocks: four in the data/ML track, two in the
+    hardware track. Inline SVG so it scales with the column and needs no library."""
+    blocks = [  # (title, subtitle, fill, text colour)
+        ("Market data", "prices · wind · demand", "#E6F4EA", INK),
+        ("Price forecast", "lear_x model", "#CDEBD6", INK),
+        ("Optimiser", "48 setpoints a day", "#A9DDB9", INK),
+        ("Sender", "JSON over MQTT", GREEN, "#FFFFFF"),
+        ("Relay", "checks · forwards", "#FDE68A", INK),
+        ("Pico 2 W", "converter → LEDs", AMBER, "#FFFFFF"),
+    ]
+    w, h, gap, x0, y0 = 180, 112, 34, 8, 54
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {x0 * 2 + 6 * w + 5 * gap} 196" width="100%" role="img" '
+             'aria-label="Pipeline from market data to the Pico LEDs" '
+             'style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;display:block">',
+             '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" '
+             f'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{MUTED}"/></marker></defs>']
+    # track bands
+    data_w, hw_x = 4 * w + 3 * gap, x0 + 4 * w + 4 * gap
+    parts.append(f'<rect x="{x0 - 4}" y="{y0 - 34}" width="{data_w + 8}" height="{h + 48}" rx="18" fill="#F6FBF7"/>')
+    parts.append(f'<rect x="{hw_x - 4}" y="{y0 - 34}" width="{2 * w + gap + 8}" height="{h + 48}" rx="18" fill="#FFFBEB"/>')
+    parts.append(f'<text x="{x0 + 12}" y="{y0 - 12}" font-size="14" font-weight="700" fill="{GREEN_DARK}" '
+                 'letter-spacing=".08em">DATA &amp; ML TRACK</text>')
+    parts.append(f'<text x="{hw_x + 12}" y="{y0 - 12}" font-size="14" font-weight="700" fill="#92400E" '
+                 'letter-spacing=".08em">HARDWARE TRACK</text>')
+    for i, (title, sub, fill, colour) in enumerate(blocks):
+        x = x0 + i * (w + gap)
+        parts.append(f'<rect x="{x}" y="{y0}" width="{w}" height="{h}" rx="14" fill="{fill}"/>')
+        parts.append(f'<text x="{x + w / 2}" y="{y0 + 50}" text-anchor="middle" font-size="22" font-weight="800" '
+                     f'fill="{colour}">{title}</text>')
+        parts.append(f'<text x="{x + w / 2}" y="{y0 + 80}" text-anchor="middle" font-size="15" fill="{colour}" '
+                     f'opacity=".85">{sub}</text>')
+        if i < len(blocks) - 1:
+            parts.append(f'<line x1="{x + w + 3}" y1="{y0 + h / 2}" x2="{x + w + gap - 3}" y2="{y0 + h / 2}" '
+                         f'stroke="{MUTED}" stroke-width="3" marker-end="url(#arr)"/>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def steps_diagram_svg(steps: list[tuple[str, str]]) -> str:
+    """A top-to-bottom block diagram for a narrow column: one block per (title, subtitle), arrows
+    between, the last block in the strong green as the output. Inline SVG string for st.image."""
+    from html import escape
+    fills = ["#E6F4EA", "#D6EEDD", "#C2E6CC", "#A9DDB9", "#8FD3A4", "#6FC58A"]
+    w, h, gap, x0, y0 = 444, 58, 22, 8, 8
+    n = len(steps)
+    total_h = y0 * 2 + n * h + (n - 1) * gap
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w + 2 * x0} {total_h}" width="100%" role="img" '
+             'style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;display:block">',
+             '<defs><marker id="arrv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" '
+             f'orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="{MUTED}"/></marker></defs>']
+    for i, (title, sub) in enumerate(steps):
+        y = y0 + i * (h + gap)
+        last = i == n - 1
+        fill, colour = (GREEN, "#FFFFFF") if last else (fills[min(i, len(fills) - 1)], INK)
+        parts.append(f'<rect x="{x0}" y="{y}" width="{w}" height="{h}" rx="12" fill="{fill}"/>')
+        parts.append(f'<text x="{x0 + 18}" y="{y + 25}" font-size="19" font-weight="800" fill="{colour}">'
+                     f'{escape(title)}</text>')
+        parts.append(f'<text x="{x0 + 18}" y="{y + 46}" font-size="13" fill="{colour}" opacity=".85">'
+                     f'{escape(sub)}</text>')
+        if not last:
+            cx = x0 + w / 2
+            parts.append(f'<line x1="{cx}" y1="{y + h + 2}" x2="{cx}" y2="{y + h + gap - 1}" stroke="{MUTED}" '
+                         'stroke-width="3" marker-end="url(#arrv)"/>')
+    parts.append("</svg>")
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -592,6 +781,13 @@ with tab_analysis:
             st.markdown("Every morning at **10:00** we forecast the wholesale electricity price for every "
                         "half-hour until midnight tomorrow, so the car knows when power will be cheap and "
                         "when it will be worth selling.")
+            st.image(steps_diagram_svg([
+                ("Market data", "Elexon prices · day-ahead wind, solar and demand forecasts"),
+                ("Clean and align", "every half-hour in UTC, gaps filled, only what was known by 10:00"),
+                ("Features", "the last few days' prices · tomorrow's wind and demand · calendar"),
+                ("LEAR model", "a lasso regression per half-hour, refitted every week"),
+                ("Price forecast", "P50 path plus a P10–P90 band from past errors, into the optimiser"),
+            ]), width="stretch")
             fr = load_forecast_results()
             if fr is None:
                 st.info("Forecast results not found (artefacts/forecasts/). Run `make forecast-lear-x`.")
@@ -628,6 +824,15 @@ with tab_analysis:
             st.markdown("From last week's charging, we predict next week: **when the car plugs in, when it "
                         "leaves, and how much energy each trip needs**. The owner never has to enter a timetable.")
             report, sessions = load_habits_report()[0], load_sessions_report()
+            logs_txt = (f"Electric Nation trial: {sessions['sessions_final']:,} sessions, {sessions['vehicles']} households"
+                        if sessions else "Electric Nation trial: real UK home charging")
+            st.image(steps_diagram_svg([
+                ("Charging logs", logs_txt),
+                ("Sessions", "plug-in time, departure time and energy per visit, in local time"),
+                ("Weekly features", "each car's last 7 days, as known on Monday 00:00"),
+                ("LightGBM", "does it plug in? when? when does it leave? how much energy?"),
+                ("Cautious plan", "P90 trip energy, P10 departure, into the optimiser's 'ready by' rule"),
+            ]), width="stretch")
             data_txt = (f"**{sessions['sessions_final']:,} real charging sessions** from **{sessions['vehicles']} UK "
                         "households** (Electric Nation trial)") if sessions else "real UK home-charging data"
             w = report["config"].get("asym_weight_w", 9) if report else 9
@@ -816,3 +1021,45 @@ with tab_hw:
         f"| Design targets sent back to hardware | {badge('placeholder')} config/design_targets.yaml, filled by the "
         "sensitivity sweep |",
         unsafe_allow_html=True)
+
+    # --- The controller stage (Eesah, hardware/firmware_c): what executes the schedule, shown as its LEDs.
+    st.markdown("#### The controller and its LEDs")
+    st.markdown(
+        "The last link is a **Raspberry Pi Pico 2 W** running Eesah's firmware (`hardware/firmware_c/`). "
+        "It makes no decisions. Every half-hour the optimiser's setpoint for the car arrives as one MQTT "
+        "message, the firmware ramps its simulated converter to it at 5 kW/s and drops back to zero if no "
+        "fresh command arrives within 5 s (`converter.c`). `power_stage.c` then renders the signed power as "
+        "two mutually exclusive 1 kHz PWM outputs: **green on GP2 while charging, blue on GP4 while selling to "
+        "the grid**, brightness equal to the PWM duty, with a **yellow RUN LED on GP8** whenever either is lit "
+        "and a short neutral gap on every reversal. This is a logic-level demonstrator: the LEDs show PWM "
+        "duty, not real power, and the gate-driver inhibit on GP6 is held low so nothing can energise a bridge.")
+    st.image(chain_diagram_svg(), width="stretch")      # SVG string; st.html would sanitise the <svg> away
+    st.caption("Verified end to end on a laptop with the real `converter.c` (`hardware/firmware_c/INTEGRATION.md`); "
+               "the LED stage itself runs on the board or in Wokwi.")
+    cl, cr = st.columns([1.55, 1])
+    with cl:
+        rng = schedule_date_range()
+        if rng is None:
+            st.info("No schedule artefact found (artefacts/schedules/lear_x.parquet): run `make optimise-backtest` "
+                    "to replay a day through the controller here.")
+        else:
+            import datetime as _dt
+            default_day = _dt.date(2025, 10, 4) if rng[0] <= _dt.date(2025, 10, 4) <= rng[1] else rng[0]
+            day = st.date_input("Day to replay (lear_x schedule, London time)", value=default_day,
+                                min_value=rng[0], max_value=rng[1], key="led_day")
+            slots = load_led_day(day.isoformat())
+            if not slots:
+                st.info("No schedule for that day.")
+            else:
+                st.iframe(led_animation_html(slots), height=330)
+                n_ch, n_dis = sum(s["mode"] == "CHARGE" for s in slots), sum(s["mode"] == "DISCHARGE" for s in slots)
+                st.caption(f"{len(slots)} half-hours from the 10:00 issue: {n_ch} charging, {n_dis} selling, "
+                           f"{len(slots) - n_ch - n_dis} idle. These are the exact commands "
+                           "`make control-send` publishes; on the Wokwi board the same bytes light the same LEDs.")
+    with cr:
+        st.markdown("**Pico pinout** (`hardware/firmware_c/PINOUT_AND_TEST.md`)")
+        st.dataframe(pd.DataFrame({
+            "Pin": ["GP2 · pin 4", "GP4 · pin 6", "GP8 · pin 11", "GP7 · pin 10", "GP6 · pin 9"],
+            "Role": ["PWM, green LED: charging", "PWM, blue LED: selling to grid", "RUN indicator, yellow LED",
+                     "Fault button, active low (latches FAULT)", "Gate-driver inhibit, held LOW, not connected"],
+        }).set_index("Pin"), width="stretch")
