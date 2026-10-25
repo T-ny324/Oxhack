@@ -1,0 +1,1129 @@
+{
+"data": [
+{
+"dataset": "NDF",
+"demand": 29933,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T10:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 21,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29987,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T10:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 22,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29999,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T11:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 23,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30172,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T11:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 24,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30100,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T12:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 25,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30074,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T12:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 26,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30443,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T13:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 27,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30426,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T13:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 28,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30239,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T14:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 29,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30277,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T14:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 30,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30200,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T15:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 31,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30586,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T15:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 32,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31388,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T16:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 33,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32655,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T16:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 34,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 33640,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T17:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 35,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 33418,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T17:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 36,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32879,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T18:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 37,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32461,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T18:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 38,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31864,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T19:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 39,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30934,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T19:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 40,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29747,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T20:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 41,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 28540,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T20:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 42,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 27150,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T21:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 43,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 25491,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T21:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 44,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 24322,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T22:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 45,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 22867,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T22:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 46,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21155,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T23:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 47,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20300,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-03T23:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 48,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20520,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T00:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 1,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21040,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T00:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 2,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20440,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T01:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 3,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 19779,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T01:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 4,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 19174,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T02:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 5,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18957,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T02:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 6,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18460,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T03:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 7,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18228,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T03:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 8,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18215,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T04:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 9,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18160,
+"publishTime": "2025-11-03T09:46:00Z",
+"startTime": "2025-11-04T04:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 10,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30248,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T09:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 20,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29933,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T10:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 21,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29987,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T10:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 22,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29999,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T11:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 23,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30172,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T11:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 24,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30100,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T12:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 25,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30074,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T12:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 26,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30443,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T13:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 27,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30426,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T13:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 28,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30239,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T14:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 29,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30277,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T14:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 30,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30200,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T15:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 31,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30586,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T15:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 32,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31388,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T16:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 33,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32655,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T16:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 34,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 33640,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T17:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 35,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 33418,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T17:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 36,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32879,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T18:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 37,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32461,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T18:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 38,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31864,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T19:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 39,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30934,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T19:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 40,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29747,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T20:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 41,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 28540,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T20:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 42,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 27150,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T21:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 43,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 25491,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T21:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 44,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 24322,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T22:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 45,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 22867,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T22:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 46,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21155,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T23:00:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 47,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20300,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-03T23:30:00Z",
+"settlementDate": "2025-11-03",
+"settlementPeriod": 48,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20520,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T00:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 1,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21040,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T00:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 2,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20440,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T01:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 3,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 19779,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T01:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 4,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 19174,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T02:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 5,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18957,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T02:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 6,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18460,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T03:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 7,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18228,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T03:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 8,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18215,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T04:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 9,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18160,
+"publishTime": "2025-11-03T09:16:00Z",
+"startTime": "2025-11-04T04:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 10,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 18850,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T05:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 11,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 19895,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T05:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 12,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21960,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T06:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 13,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 23701,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T06:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 14,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 25900,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T07:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 15,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 27220,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T07:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 16,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29415,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T08:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 17,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30333,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T08:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 18,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31080,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T09:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 19,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31080,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T09:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 20,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31007,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T10:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 21,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30965,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T10:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 22,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30871,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T11:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 23,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 30834,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T11:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 24,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31100,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T12:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 25,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31087,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T12:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 26,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31110,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T13:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 27,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31117,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T13:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 28,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31162,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T14:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 29,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31713,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T14:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 30,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32204,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T15:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 31,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32988,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T15:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 32,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 34058,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T16:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 33,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 35233,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T16:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 34,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 35960,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T17:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 35,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 35754,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T17:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 36,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 35103,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T18:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 37,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 34663,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T18:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 38,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 34248,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T19:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 39,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 33548,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T19:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 40,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 32487,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T20:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 41,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 31220,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T20:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 42,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 29765,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T21:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 43,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 28419,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T21:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 44,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 27153,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T22:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 45,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 25669,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T22:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 46,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 24340,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T23:00:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 47,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 23220,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-04T23:30:00Z",
+"settlementDate": "2025-11-04",
+"settlementPeriod": 48,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 23230,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T00:00:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 1,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 23520,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T00:30:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 2,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 22963,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T01:00:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 3,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 22474,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T01:30:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 4,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21892,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T02:00:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 5,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 21669,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T02:30:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 6,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20919,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T03:00:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 7,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20683,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T03:30:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 8,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20330,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T04:00:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 9,
+"boundary": "N"
+},
+{
+"dataset": "NDF",
+"demand": 20669,
+"publishTime": "2025-11-03T08:45:00Z",
+"startTime": "2025-11-05T04:30:00Z",
+"settlementDate": "2025-11-05",
+"settlementPeriod": 10,
+"boundary": "N"
+}
+]
+}

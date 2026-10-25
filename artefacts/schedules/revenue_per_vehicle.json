@@ -1,0 +1,191 @@
+{
+  "per_model": {
+    "perfect_foresight": {
+      "net_revenue_gbp": -77.9910198902,
+      "import_cost_gbp": 596.4202453957,
+      "export_income_gbp": 526.1329710176,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": -1.322873412,
+      "energy_charged_kwh": 7849.6130092141,
+      "energy_discharged_kwh": 4029.3144900325,
+      "equivalent_cycles": 98.9910624937,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 365.0,
+      "solve_seconds_total": 1.5967374154,
+      "solve_seconds_mean": 0.0043746231,
+      "milp_issues": 17.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 356.5293331967,
+      "decision_value_gbp": 0.0,
+      "pct_of_perfect_saving": 100.0
+    },
+    "lear_x": {
+      "net_revenue_gbp": -176.4186462481,
+      "import_cost_gbp": 536.306189774,
+      "export_income_gbp": 365.9316417513,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": 0.3367738747,
+      "energy_charged_kwh": 6649.692956491,
+      "energy_discharged_kwh": 2982.1740683677,
+      "equivalent_cycles": 80.2655585405,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 365.0,
+      "solve_seconds_total": 1.5312961716,
+      "solve_seconds_mean": 0.004195332,
+      "milp_issues": 6.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 258.1017068389,
+      "decision_value_gbp": 98.4276263579,
+      "pct_of_perfect_saving": 72.3928391879
+    },
+    "lear": {
+      "net_revenue_gbp": -226.8483599867,
+      "import_cost_gbp": 486.5355642884,
+      "export_income_gbp": 266.2056952749,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": -0.1376188732,
+      "energy_charged_kwh": 5644.205887272,
+      "energy_discharged_kwh": 2119.2573319961,
+      "equivalent_cycles": 64.6955268272,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 365.0,
+      "solve_seconds_total": 1.4494796784,
+      "solve_seconds_mean": 0.0039711772,
+      "milp_issues": 0.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 207.6719931003,
+      "decision_value_gbp": 148.8573400965,
+      "pct_of_perfect_saving": 58.2482207672
+    },
+    "naive_daily": {
+      "net_revenue_gbp": -299.3229341869,
+      "import_cost_gbp": 763.0505275651,
+      "export_income_gbp": 468.8229061077,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": 1.2855593704,
+      "energy_charged_kwh": 7858.2518495128,
+      "energy_discharged_kwh": 4016.415871277,
+      "equivalent_cycles": 98.9555643399,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 365.0,
+      "solve_seconds_total": 1.6872649888,
+      "solve_seconds_mean": 0.0046226438,
+      "milp_issues": 18.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 135.1974189,
+      "decision_value_gbp": 221.3319142967,
+      "pct_of_perfect_saving": 37.9204195312
+    },
+    "naive_weekly": {
+      "net_revenue_gbp": -302.0151001078,
+      "import_cost_gbp": 759.7084587055,
+      "export_income_gbp": 463.2630640752,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": 0.8111666226,
+      "energy_charged_kwh": 7809.7252509331,
+      "energy_discharged_kwh": 3978.2914025437,
+      "equivalent_cycles": 98.2334721123,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 365.0,
+      "solve_seconds_total": 1.6734642528,
+      "solve_seconds_mean": 0.0045848336,
+      "milp_issues": 17.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 132.5052529792,
+      "decision_value_gbp": 224.0240802176,
+      "pct_of_perfect_saving": 37.1653159057
+    },
+    "unmanaged": {
+      "net_revenue_gbp": -434.5203530869,
+      "import_cost_gbp": 430.0220316117,
+      "export_income_gbp": 0.0,
+      "standby_cost_gbp": 6.3808721,
+      "end_energy_credit_gbp": 1.8825506248,
+      "energy_charged_kwh": 3203.6308334219,
+      "energy_discharged_kwh": 0.0,
+      "equivalent_cycles": 26.6969236118,
+      "excluded_periods": 30.0,
+      "executed_periods": 17520.0,
+      "issues": 0.0,
+      "solve_seconds_total": 0.0,
+      "solve_seconds_mean": 0.0,
+      "milp_issues": 0.0,
+      "max_shortfall_soc": 0.0,
+      "saving_vs_unmanaged_gbp": 0.0,
+      "decision_value_gbp": 356.5293331967,
+      "pct_of_perfect_saving": 0.0
+    }
+  },
+  "window": {
+    "start": "2025-10-01",
+    "end": "2026-09-30"
+  },
+  "issues": 365,
+  "forecast_file": "artefacts/forecasts/handoff_price_forecasts.parquet",
+  "profile": {
+    "kind": "commuter",
+    "weekday_depart_h": 7.75,
+    "weekday_return_h": 18.0,
+    "weekday_trip_kwh": 9.0,
+    "saturday_depart_h": 11.0,
+    "saturday_return_h": 16.0,
+    "saturday_trip_kwh": 12.0,
+    "sunday_trip_kwh": 0.0
+  },
+  "tariff_adders_per_mwh": {
+    "import_adder_per_mwh": 15.0,
+    "export_adder_per_mwh": -5.0
+  },
+  "battery_kwh": 60.0,
+  "standby_w": 10.0,
+  "physics_checks": {
+    "lear_x": {
+      "energy_balance_max_abs_soc_error": 8.770761894538737e-15,
+      "soc_min": 0.19999999999999854,
+      "soc_max": 0.9000000000000001,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    },
+    "lear": {
+      "energy_balance_max_abs_soc_error": 1.4988010832439613e-14,
+      "soc_min": 0.19999999999999907,
+      "soc_max": 0.9000000000000001,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    },
+    "naive_daily": {
+      "energy_balance_max_abs_soc_error": 4.3298697960381105e-15,
+      "soc_min": 0.19999999999999862,
+      "soc_max": 0.9000000000000002,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    },
+    "naive_weekly": {
+      "energy_balance_max_abs_soc_error": 5.551115123125783e-15,
+      "soc_min": 0.19999999999999873,
+      "soc_max": 0.9000000000000002,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    },
+    "perfect_foresight": {
+      "energy_balance_max_abs_soc_error": 5.329070518200751e-15,
+      "soc_min": 0.19999999999999873,
+      "soc_max": 0.9000000000000002,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    },
+    "unmanaged": {
+      "energy_balance_max_abs_soc_error": 0.0,
+      "soc_min": 0.6,
+      "soc_max": 0.8999999999999999,
+      "within_bounds": true,
+      "simultaneous_periods": 0
+    }
+  },
+  "runtime_seconds": 13.9
+}

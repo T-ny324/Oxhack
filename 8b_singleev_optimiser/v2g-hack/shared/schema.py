@@ -143,6 +143,42 @@ class OptimiserConfig(BaseModel):
     target_soc: float = Field(default=0.80, ge=0, le=1)
 
 
+class DateWindow(BaseModel):
+    start: str  # local issue date, inclusive (YYYY-MM-DD)
+    end: str
+
+
+class CommuterProfile(BaseModel):
+    """Documented default availability profile for backtests without real sessions (hours are local)."""
+    kind: Literal["commuter"] = "commuter"
+    weekday_depart_h: float = Field(ge=0, lt=24)
+    weekday_return_h: float = Field(gt=0, lt=24)
+    weekday_trip_kwh: float = Field(ge=0)
+    saturday_depart_h: float = Field(ge=0, lt=24)
+    saturday_return_h: float = Field(gt=0, lt=24)
+    saturday_trip_kwh: float = Field(ge=0)
+    sunday_trip_kwh: float = Field(ge=0)  # 0 = stays plugged in all Sunday
+
+
+class ForecastBacktestConfig(BaseModel):
+    """Rolling backtest of the optimiser on the S3 price forecasts (docs/forecast_backtest.md).
+
+    Paths are relative to the repository root (the forecast artefacts live there)."""
+    forecast_path: str
+    forecast_fallback_path: str
+    prices_path: str
+    converter_spec_path: str
+    series: str
+    models: list[str]
+    perfect_foresight_name: str = "perfect_foresight"
+    window: DateWindow
+    smoke_window: DateWindow
+    profile: CommuterProfile
+    floor_reserve: float = Field(ge=0, le=1)
+    out_dir: str
+    figures_dir: str
+
+
 class Assumptions(BaseModel):
     region: str
     currency: str
@@ -151,6 +187,7 @@ class Assumptions(BaseModel):
     battery: BatteryAssumptions
     tariff: Tariff
     optimiser: OptimiserConfig
+    forecast_backtest: ForecastBacktestConfig | None = None   # optional: only the forecast backtest needs it
 
     @field_validator("dt_h")
     @classmethod

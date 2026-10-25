@@ -36,6 +36,21 @@ The app has three tabs: **ExtraEnergy app** (what the owner sees), **Analysis** 
 habits model, savings, payback) and **Hardware** (the converter spec). Anything marked
 PLACEHOLDER is synthetic until the matching pipeline stage lands.
 
+## Run the data pipeline (price data and forecasts)
+
+The full pipeline needs more packages than the app (`pyproject.toml`):
+
+```bash
+uv pip install -e ".[dev]"
+make data-prices      # GB wholesale prices (Elexon MID) -> data/processed/prices.parquet
+make forecast-naive   # naive price baselines + eval -> artefacts/forecasts/price_quantiles.parquet
+```
+
+Data ingest lives in `src/v2g/ingest/` and price forecasts in `src/v2g/forecast/` (see their
+READMEs). Raw API responses are cached under `data/raw/` and cleaned tables written to
+`data/processed/`; both are gitignored. Settings live under `forecast:` and `ingest:` in
+`config/assumptions.yaml`. See the `Makefile` for every stage.
+
 ## Run the tests
 
 ```bash
