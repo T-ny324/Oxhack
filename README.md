@@ -12,7 +12,8 @@ and how much energy each car sells back to the grid when it is needed most.
 Target market: any EV owner with a home mains connection, supported by government subsidies.
 *Coming soon: ExtraEnergy for fleets.*
 
-**Live app:** _link coming soon (Streamlit Community Cloud)_
+**Live app:** https://extraenergy.streamlit.app/ (Streamlit Community Cloud; if it has been idle,
+click "wake up" and give it a minute)
 
 | Owner view | Analysis view |
 |---|---|
