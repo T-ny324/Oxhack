@@ -50,7 +50,7 @@ forecast:
     n_jobs: -1
     write_component_models: false      # also write lear_w56, lear_w84, ... for diagnostics
     # Criterion per model, frozen after validation on validation_window (see src/v2g/forecast/README.md).
-    lambda_selection_by_model: {}
+    lambda_selection_by_model: {lear: aic, lear_x: aic}   # validation 2025-04-01..2025-09-30: lear 17.44 vs 17.61, lear_x 14.50 vs 14.52 MAE
   exog:
     enabled_for_models: [lear_x]
     # Exogenous forecast vintages used as features (see data/processed/exog/). wind_neso_da_mw is

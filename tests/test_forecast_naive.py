@@ -39,11 +39,16 @@ CFG = ForecastConfig(
         "lambda_selection": "aic",
         "n_jobs": -1,
         "write_component_models": False,
-        "lambda_selection_by_model": {},
+        "lambda_selection_by_model": {"lear": "aic", "lear_x": "aic"},
     },
     exog={
         "enabled_for_models": ["lear_x"],
-        "variables": ["wind_da_mw", "embedded_wind_mw", "embedded_solar_mw", "demand_da_mw"],
+        "variables": [
+            "wind_da_mw",
+            "embedded_wind_mw",
+            "embedded_solar_mw",
+            "demand_da_mw",
+        ],
         "exog_known_lag_minutes": 0,
         "include_residual_load": True,
         "sources": ["elexon_ndf", "elexon_windfor", "neso_embedded_forecast"],

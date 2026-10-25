@@ -20,8 +20,9 @@ issue, B = next local day). The output CSV is long: one row per
 (model, slice_type, slice). Model-agnostic: LEAR or LightGBM rows in the same
 parquet are scored the same way.
 
-Diebold-Mariano (multivariate version of Lago et al. 2021): for every
-non-benchmark model and each naive benchmark present, the loss differential
+Diebold-Mariano (multivariate version of Lago et al. 2021): for every model
+against each benchmark present (naive_daily, naive_weekly and lear, never
+against itself), the loss differential
 per issue is the mean over that issue's common targets of |e_benchmark| -
 |e_model|. The statistic is mean(d) / (sd(d) / sqrt(N)) with the sample
 standard deviation over issues, and the one-sided p-value tests the
@@ -78,7 +79,7 @@ METRIC_COLUMNS = [
     "coverage",
 ]
 
-DM_BENCHMARKS = ("naive_daily", "naive_weekly")
+DM_BENCHMARKS = ("naive_daily", "naive_weekly", "lear")
 DM_COLUMNS = ["model", "benchmark", "n_issues", "mean_loss_diff", "dm_stat", "p_value"]
 
 
@@ -232,9 +233,11 @@ def dm_table(
     present = set(prepared["model"].unique())
     rows = [
         diebold_mariano(prepared, model, benchmark)
-        for model in sorted(present - set(benchmarks))
+        for model in sorted(m for m in present if m not in benchmarks or m == "lear")
         for benchmark in benchmarks
         if benchmark in present
+        and benchmark != model
+        and not (model == "lear" and benchmark == "lear")
     ]
     return pd.DataFrame(rows, columns=DM_COLUMNS)
 

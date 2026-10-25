@@ -464,10 +464,9 @@ def test_run_upserts_next_to_naive_rows_and_evaluates_with_dm(tmp_path):
     )
     assert {"lear", "lear_w28", "naive_daily", "naive_weekly"} <= set(scores["model"])
     dm = scores.attrs["dm"]
-    assert set(dm["model"]) == {"lear", "lear_w28"} and set(dm["benchmark"]) == {
-        "naive_daily",
-        "naive_weekly",
-    }
+    assert set(dm["model"]) == {"lear", "lear_w28"}
+    assert set(dm["benchmark"]) == {"naive_daily", "naive_weekly", "lear"}
+    assert not ((dm["model"] == "lear") & (dm["benchmark"] == "lear")).any()
     assert np.isfinite(dm["dm_stat"]).all() and dm["p_value"].between(0, 1).all()
     assert (tmp_path / "eval_dm.csv").exists()
     table = ev.show_issue(written, prices, "2025-11-12", cfg)

@@ -48,7 +48,18 @@ visible, which `tests/test_forecast_exog.py` checks by perturbation.
 `forecast.validation_window` (2025-04-01 to 2025-09-30, before the backtest),
 scores them and writes `artefacts/forecasts/validation_summary.csv`. The
 winner per model is frozen in `forecast.lear.lambda_selection_by_model` and
-not revisited after the backtest. Results are recorded below once run.
+not revisited after the backtest.
+
+Validation 2025-04-01..2025-09-30, weekly recalibration, 13,893 scored rows per model:
+
+| model | criterion | MAE | RMSE | pinball | coverage | chosen |
+|---|---|---|---|---|---|---|
+| lear | aic | 17.44 | 26.47 | 6.22 | 77.5% | yes |
+| lear | bic | 17.61 | 27.08 | 6.26 | 77.4% | |
+| lear_x | aic | 14.50 | 21.73 | 5.12 | 78.3% | yes |
+| lear_x | bic | 14.52 | 21.81 | 5.14 | 77.6% | |
+
+Frozen: `lambda_selection_by_model: {lear: aic, lear_x: aic}`.
 
 Ladder: naive -> LEAR -> LightGBM (TODO) -> exogenous NESO features (TODO, see
 the `exog` hook in `lear_features.build_features`).
