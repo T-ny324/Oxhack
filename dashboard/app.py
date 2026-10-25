@@ -18,6 +18,7 @@ Sign convention (CONTEXT.md §6.3): + = grid → vehicle (charging), − = vehic
 from __future__ import annotations
 
 import math
+import time
 import sys
 from pathlib import Path
 
@@ -200,6 +201,42 @@ def load_habits_report() -> tuple[dict | None, str]:
         import json
         return json.loads(HABITS_REPORT.read_text()), "habits model artefact"
     return None, "placeholder"
+
+
+SESSIONS_REPORT = ROOT / "8b_singleev_optimiser" / "v2g-hack" / "data" / "processed" / "sessions_ingest_report.json"
+FORECAST_DIR = ROOT / "artefacts" / "forecasts"            # Tony's S3 outputs (summary: FORECAST_MODELS.md)
+REVENUE_JSON = ROOT / "artefacts" / "schedules" / "revenue_per_vehicle.json"
+
+# The price-forecast ladder in plain words (from artefacts/forecasts/FORECAST_MODELS.md).
+FORECAST_MODELS = [
+    ("naive_weekly", "Copy last week", "the price at the same time 7 days ago"),
+    ("naive_daily", "Copy yesterday", "yesterday's price (last week's at weekends)"),
+    ("lear", "LEAR", "a regression on the last few days' prices"),
+    ("lear_x", "LEAR + forecasts", "LEAR plus tomorrow's demand, wind and solar forecasts"),
+]
+
+
+@st.cache_data
+def load_sessions_report() -> dict | None:
+    """How much real charging data the habits model learned from (sessions, households)."""
+    import json
+    return json.loads(SESSIONS_REPORT.read_text()) if SESSIONS_REPORT.exists() else None
+
+
+@st.cache_data
+def load_forecast_results() -> dict | None:
+    """Tony's one-year price-forecast backtest: error per model (eval_*.csv) and the £/yr each
+    model earns once the optimiser uses it (revenue_per_vehicle.json). None if missing."""
+    import json
+    try:
+        ev = pd.concat([pd.read_csv(FORECAST_DIR / "eval_naive.csv"), pd.read_csv(FORECAST_DIR / "eval_lear.csv")])
+        overall = ev[ev["slice_type"] == "overall"].set_index("model")
+        rev = json.loads(REVENUE_JSON.read_text())["per_model"]
+        return {"mae": overall["mae"].to_dict(),
+                "saving": {k: v["saving_vs_unmanaged_gbp"] for k, v in rev.items()},
+                "pct_perfect": {k: v["pct_of_perfect_saving"] for k, v in rev.items()}}
+    except (FileNotFoundError, KeyError, ValueError):
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -403,6 +440,108 @@ with tab_analysis:
             st.caption(f"Tariff {badge(price_source)}. TODO(S3): Tony's price forecast "
                        "(artefacts/forecasts/price_quantiles.parquet).", unsafe_allow_html=True)
 
+    # ---- §8.B the optimiser (8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md)
+    st.markdown("### The optimiser: how it decides")
+    st.caption("For every half-hour the car is plugged in, it chooses **how hard to charge** and **how hard "
+               "to sell back**. Everything else (battery level, the bill) follows from those two numbers.")
+    o1, o2 = st.columns(2, gap="large")
+    with o1:
+        with st.container(border=True):
+            st.markdown("##### What it minimises: the owner's bill")
+            st.latex(r"\min_{P^{ch}_t,\;P^{dis}_t}\;\sum_t \Big[\,p^{buy}_t P^{ch}_t \;-\; p^{sell}_t P^{dis}_t"
+                     r"\;+\; c_{deg}\,(P^{ch}_t + P^{dis}_t)\Big]\,\Delta t")
+            st.markdown("Pay for what you import, earn for what you export, and charge every kWh that "
+                        f"passes through the battery a small wear cost (c_deg = {ASSUME['c_deg'] * 100:.0f} p/kWh "
+                        f"{badge('assumption')}). Savings = a normal charger's bill minus this.",
+                        unsafe_allow_html=True)
+            st.markdown(
+                "**The rules it must follow**\n"
+                "1. **Energy adds up.** The battery only changes by what goes in (minus charging losses), "
+                "what comes out (plus selling losses) and what the car uses driving.\n"
+                f"2. **Battery stays in its healthy range**, between {ASSUME['soc_min']:.0%} and "
+                f"{ASSUME['soc_max']:.0%} full.\n"
+                "3. **Charger limits.** It can only charge or sell while the car is plugged in, and never "
+                "faster than the charger is rated for.\n"
+                "4. **Charge or sell, never both** in the same half-hour (otherwise it could waste energy on "
+                "purpose when prices go negative).\n"
+                "5. **The driver comes first.** *Max savings:* always enough for the next trip plus a reserve "
+                "when the car leaves. *Guaranteed charge:* never below the owner's chosen target while "
+                "plugged in.")
+    with o2:
+        with st.container(border=True):
+            st.markdown("##### How it's solved: simplex, in milliseconds")
+            a_s, d_s = op["arrive_slot"], op["depart_slot"]
+            buy_all, sell_all, _ = load_prices(EXPORT_FRACTION)
+            t0 = time.perf_counter()
+            live = lp.solve_schedule(buy=tuple(buy_all[a_s:d_s]), sell=tuple(sell_all[a_s:d_s]),
+                                     **{k: op[k] for k in ("p_ch", "p_dis", "eta_ch", "eta_dis", "e_cap",
+                                                           "trip_kwh", "reserve_kwh", "soc_min", "soc_max",
+                                                           "c_deg", "mode", "target", "always_ready")},
+                                     allow_v2g=True)
+            solve_ms = (time.perf_counter() - t0) * 1000
+            n_slots = d_s - a_s
+            s1, s2 = st.columns(2)
+            s1.metric("Tonight's plan", f"{n_slots} half-hours", delta=f"{3 * n_slots + 2} decision variables",
+                      delta_color="off")
+            s2.metric("Solved in", f"{solve_ms:.0f} ms", delta="live, on this page", delta_color="off")
+            st.markdown(
+                "- **A linear program.** The bill and every rule are straight-line formulas, so the best plan "
+                "is guaranteed to be the global best, not just a good guess.\n"
+                "- **Simplex (HiGHS).** The best plan sits at a corner of the allowed region; simplex walks "
+                "corner to better corner until none is better. Exact answer, no tuning.\n"
+                "- **Yes/no switches only where needed:** 'charge OR sell' only bites when prices go negative, "
+                "and 'always ready' needs one. Those few switches make it a MILP, solved by branch-and-bound.\n"
+                "- **Why not gradient descent?** The bill is linear, so its gradient never shrinks; all the "
+                "work is in the constraints, which simplex handles exactly.\n"
+                "- **Plan 38 h, act 24 h.** Every morning at 10:00 (new price forecast) it plans to midnight "
+                "tomorrow, acts on the first 24 h, then re-plans with the real battery level, and again the "
+                "moment the car plugs in.")
+
+    # ---- the loss function behind the predictions the optimiser plans around
+    with st.container(border=True):
+        report_l = load_habits_report()[0]
+        w_l = report_l["config"].get("asym_weight_w", 9) if report_l else 9
+        tau = w_l / (w_l + 1)
+        st.markdown("##### Loss function: penalise under-charging heavily")
+        l1, l2 = st.columns([1.35, 1], gap="large")
+        with l1:
+            st.markdown("The optimiser plans around **predicted** trips and departure times. Getting those wrong "
+                        "is not symmetric: predicting too little strands the driver, predicting too much only "
+                        "costs a little lost income. So the predictions are trained with an **asymmetric "
+                        "(pinball) loss**, where a dangerous error costs "
+                        f"**w = {w_l:g}×** a safe one:")
+            st.latex(r"L_\tau(y,\hat y)=\begin{cases}\tau\,(y-\hat y) & y \ge \hat y\ \text{(predicted too low)}\\"
+                     r"(1-\tau)\,(\hat y-y) & y < \hat y\ \text{(predicted too high)}\end{cases}"
+                     rf"\qquad \tau=\tfrac{{w}}{{w+1}}={tau:.1f}")
+            st.dataframe(pd.DataFrame({
+                "Dangerous error": ["predicting too little", "predicting too late", "predicting too early"],
+                "So we predict the": [f"P{tau * 100:.0f} (high end)", f"P{(1 - tau) * 100:.0f} (early end)",
+                                      f"P{tau * 100:.0f} (late end)"],
+            }, index=["Trip energy", "Departure time", "Plug-in time"]), width="stretch")
+            st.markdown("**How it feeds the optimiser:** at each predicted (early-side) departure, the battery "
+                        "must hold the cautious (high-side) trip estimate plus a safety reserve, on top of its "
+                        "minimum level.")
+        with l2:
+            err = np.linspace(-10, 10, 81)            # actual − predicted (kWh)
+            fig = go.Figure()
+            fig.add_scatter(x=err, y=np.where(err >= 0, tau * err, (tau - 1) * err), mode="lines",
+                            line=dict(color=GREEN, width=3), name=f"Asymmetric (w = {w_l:g})")
+            fig.add_scatter(x=err, y=0.5 * np.abs(err), mode="lines", line=dict(color=MUTED, width=2, dash="dot"),
+                            name="Symmetric")
+            fig.add_annotation(x=7, y=tau * 7, text="car left short:<br>heavy penalty", showarrow=False,
+                               yshift=26, font=dict(size=11, color=GREEN_DARK))
+            fig.add_annotation(x=-7, y=(1 - tau) * 7, text="a bit too cautious:<br>small penalty",
+                               showarrow=False, yshift=26, font=dict(size=11, color=MUTED))
+            fig.update_layout(title=dict(text="Penalty vs prediction error (trip energy)", font=dict(size=14)),
+                              height=300, margin=dict(l=0, r=0, t=40, b=0), plot_bgcolor="white",
+                              xaxis=dict(title="actual − predicted (kWh)", gridcolor="#EEF2EF", zeroline=True),
+                              yaxis=dict(title="penalty", gridcolor="#EEF2EF"),
+                              legend=dict(orientation="h", y=-0.3))
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+            st.caption("w is a dial between safety and savings: w = 1 (a plain median) leaves 63% of trips short "
+                       "in validation; w = 9 cuts that to 16%. Source: "
+                       "8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md")
+
     # ---- §8.B.1 app modes: the cost of peace of mind as the target rises
     st.markdown("#### The cost of peace of mind")
     targets = list(range(30, 95, 5))
@@ -424,32 +563,76 @@ with tab_analysis:
     st.caption("Savings in guaranteed-charge mode as the owner raises their target, at the app tab's "
                "trip and times. The gap to the dotted line is the cost of peace of mind.")
 
-    # ---- Option B: the habits model (learns when the car is plugged in and how far it drives)
-    st.markdown("#### Learning the driver's habits")
-    report, habits_src = load_habits_report()
-    if report is None:
-        st.info("Habits model results not found " + "(run `python -m v2g.habits.evaluate`). "
-                "Showing nothing rather than made-up numbers.")
-    else:
-        cc = report["cost_of_caution"]
-        tm = report["test_metrics"]
-        h1, h2, h3 = st.columns(3)
-        h1.metric("Trips left short: copy last week", f"{cc['baseline']['shortfall_rate']:.1%}")
-        h2.metric("Trips left short: our habits model", f"{cc['lgbm']['shortfall_rate']:.1%}",
-                  delta=f"{(cc['lgbm']['shortfall_rate'] - cc['baseline']['shortfall_rate']) * 100:.1f} pts",
-                  delta_color="inverse")
-        h3.metric("Savings kept vs knowing the week perfectly", f"{cc['lgbm']['share_of_perfect_savings']:.0%}")
-        rows = {"Copy last week": "baseline", "Habits model (LightGBM)": "lgbm",
-                "Perfect knowledge": "perfect", "Normal charger": "unmanaged"}
-        st.dataframe(pd.DataFrame({
-            "Saving vs normal charger (£/week)": [cc[k]["saving_gbp_per_week"] for k in rows.values()],
-            "Departures short by > 1 kWh": [f"{cc[k]['shortfall_rate']:.1%}" for k in rows.values()],
-        }, index=list(rows)).round(2), width="stretch")
-        st.caption(f"{badge('placeholder')} prices (synthetic). 63 Electric Nation drivers the model never "
-                   f"saw, one simulated week each. Test-set prediction shortfall: "
-                   f"{tm['lgbm']['shortfall_rate']:.1%} vs {tm['baseline']['shortfall_rate']:.1%} for copying "
-                   "last week. Details: 8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md",
-                   unsafe_allow_html=True)
+    # ---- How ExtraEnergy learns: the two learning models, at presentation level
+    st.markdown("### How ExtraEnergy learns")
+    st.caption("Two models feed the optimiser: one predicts **prices**, one predicts the **owner**. "
+               "Each is compared with a simple 'copy the past' rule, the benchmark it has to beat.")
+    lc1, lc2 = st.columns(2, gap="large")
+
+    with lc1:      # §8.A price forecasting (Tony)
+        with st.container(border=True):
+            st.markdown("##### 1 · Forecasting tomorrow's prices")
+            st.markdown("Every morning at **10:00** we forecast the wholesale electricity price for every "
+                        "half-hour until midnight tomorrow, so the car knows when power will be cheap and "
+                        "when it will be worth selling.")
+            fr = load_forecast_results()
+            if fr is None:
+                st.info("Forecast results not found (artefacts/forecasts/). Run `make forecast-lear-x`.")
+            else:
+                st.dataframe(pd.DataFrame(
+                    {"How it predicts": [idea for _, _, idea in FORECAST_MODELS],
+                     "Typical error (£/MWh)": [round(fr["mae"].get(k, float("nan")), 1) for k, _, _ in FORECAST_MODELS]},
+                    index=[name for _, name, _ in FORECAST_MODELS]), width="stretch")
+                names = [name for _, name, _ in FORECAST_MODELS] + ["Perfect foresight"]
+                keys = [k for k, _, _ in FORECAST_MODELS] + ["perfect_foresight"]
+                vals = [fr["saving"].get(k, 0.0) for k in keys]
+                fig = go.Figure(go.Bar(
+                    y=names, x=vals, orientation="h",
+                    marker_color=["#CBD5CF", "#CBD5CF", "#86EFAC", GREEN, "#E6F4EA"],
+                    marker_line=dict(color=["#CBD5CF"] * 4 + [GREEN], width=[0, 0, 0, 0, 2]),
+                    text=[f"£{v:,.0f}" for v in vals], textposition="outside"))
+                fig.update_layout(title=dict(text="Owner savings a year, by price forecast", font=dict(size=14)),
+                                  height=250, margin=dict(l=0, r=40, t=36, b=0), plot_bgcolor="white",
+                                  xaxis=dict(title="£/yr vs a normal charger", gridcolor="#EEF2EF"))
+                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+                best, naive = fr["mae"].get("lear_x"), fr["mae"].get("naive_daily")
+                if best and naive:
+                    st.markdown(f"✅ Our best model is **{1 - best / naive:.0%} more accurate** than copying "
+                                f"yesterday, and captures **{fr['pct_perfect'].get('lear_x', 0):.0f}%** of the "
+                                "saving a perfect forecast would give.")
+                st.caption("Tony's one-year backtest (Oct 2025 – Sep 2026, real GB prices, forecasts issued as if "
+                           f"live). 60 kWh car, 7.4 kW charger; tariff adders {badge('placeholder')}. "
+                           "More: artefacts/forecasts/FORECAST_MODELS.md", unsafe_allow_html=True)
+
+    with lc2:      # §8.B Option B: the habits model
+        with st.container(border=True):
+            st.markdown("##### 2 · Learning the owner's habits")
+            st.markdown("From last week's charging, we predict next week: **when the car plugs in, when it "
+                        "leaves, and how much energy each trip needs**. The owner never has to enter a timetable.")
+            report, sessions = load_habits_report()[0], load_sessions_report()
+            data_txt = (f"**{sessions['sessions_final']:,} real charging sessions** from **{sessions['vehicles']} UK "
+                        "households** (Electric Nation trial)") if sessions else "real UK home-charging data"
+            w = report["config"].get("asym_weight_w", 9) if report else 9
+            st.markdown(f"- **Learns from** {data_txt}, one shared model, personal predictions.\n"
+                        "- **Model:** gradient-boosted trees (LightGBM) that read each driver's last week.\n"
+                        f"- **Cautious by design:** running short costs the driver far more than a little lost "
+                        f"income, so it is trained to plan for a bigger trip and an earlier departure "
+                        f"(a shortfall counts {w:g}× more than a surplus).")
+            if report is None:
+                st.info("Habits model results not found (run `python -m v2g.habits.evaluate`).")
+            else:
+                cc = report["cost_of_caution"]
+                m1, m2 = st.columns(2)
+                m1.metric("Trips left short", f"{cc['lgbm']['shortfall_rate']:.1%}",
+                          delta=f"vs {cc['baseline']['shortfall_rate']:.1%} copying last week",
+                          delta_color="off")
+                m2.metric("Savings kept", f"{cc['lgbm']['share_of_perfect_savings']:.0%}",
+                          delta="vs knowing the week perfectly", delta_color="off")
+                st.markdown(f"✅ **{cc['baseline']['shortfall_rate'] / cc['lgbm']['shortfall_rate']:.0f}× fewer** "
+                            "trips where the car is left short than simply copying last week.")
+                st.caption("Tested on 63 drivers the model never saw, one simulated week each; prices "
+                           f"{badge('placeholder')} (synthetic). More: "
+                           "8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md", unsafe_allow_html=True)
 
     # ---- §8.H tornado: which input moves the payback most?
     st.markdown("#### What moves the payback most?")
