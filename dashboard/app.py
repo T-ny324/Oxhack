@@ -803,10 +803,14 @@ with tab_analysis:
                     y=names, x=vals, orientation="h",
                     marker_color=["#CBD5CF", "#CBD5CF", "#86EFAC", GREEN, "#E6F4EA"],
                     marker_line=dict(color=["#CBD5CF"] * 4 + [GREEN], width=[0, 0, 0, 0, 2]),
-                    text=[f"£{v:,.0f}" for v in vals], textposition="outside"))
+                    text=[f"£{v:,.0f}" for v in vals], textposition="outside", cliponaxis=False))
+                # Room for the label beyond the longest bar, and a horizontal range slider under the axis.
+                x_max = max(vals + [1.0]) * 1.22
                 fig.update_layout(title=dict(text="Owner savings a year, by price forecast", font=dict(size=14)),
-                                  height=250, margin=dict(l=0, r=40, t=36, b=0), plot_bgcolor="white",
-                                  xaxis=dict(title="£/yr vs a normal charger", gridcolor="#EEF2EF"))
+                                  height=300, margin=dict(l=0, r=56, t=36, b=0), plot_bgcolor="white",
+                                  xaxis=dict(title="£/yr vs a normal charger", gridcolor="#EEF2EF",
+                                             range=[0, x_max], rangeslider=dict(visible=True, thickness=0.10,
+                                                                                range=[0, x_max])))
                 st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
                 best, naive = fr["mae"].get("lear_x"), fr["mae"].get("naive_daily")
                 if best and naive:
