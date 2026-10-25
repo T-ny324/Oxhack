@@ -55,21 +55,44 @@ def to_date(value: date | str | pd.Timestamp | datetime) -> date:
     return pd.Timestamp(value).date()
 
 
+def local_to_utc_tz(local_naive, tz: ZoneInfo | str) -> pd.DatetimeIndex:
+    """Localise naive wall-clock times in ``tz`` and return UTC (DST rules in the module docstring)."""
+    idx = pd.DatetimeIndex(local_naive)
+    if idx.tz is not None:
+        raise ValueError("local_to_utc expects naive wall-clock times")
+    zone = ZoneInfo(tz) if isinstance(tz, str) else tz
+    localised = idx.tz_localize(
+        zone,
+        ambiguous=np.ones(len(idx), dtype=bool),  # True = DST = first occurrence
+        nonexistent=pd.Timedelta(hours=-1),
+    )
+    return localised.tz_convert("UTC").as_unit("ns")
+
+
 def local_to_utc(local_naive, cfg: ForecastConfig) -> pd.DatetimeIndex:
     """Localise naive wall-clock times in the configured zone and return UTC.
 
     Applies the DST rules from the module docstring: nonexistent times shift
     one hour earlier, ambiguous times take the first (summer-time) occurrence.
     """
-    idx = pd.DatetimeIndex(local_naive)
-    if idx.tz is not None:
-        raise ValueError("local_to_utc expects naive wall-clock times")
-    localised = idx.tz_localize(
-        tzinfo(cfg),
-        ambiguous=np.ones(len(idx), dtype=bool),  # True = DST = first occurrence
-        nonexistent=pd.Timedelta(hours=-1),
-    )
-    return localised.tz_convert("UTC").as_unit("ns")
+    return local_to_utc_tz(local_naive, tzinfo(cfg))
+
+
+def settlement_period_to_utc(
+    settlement_date, settlement_period, tz: ZoneInfo | str
+) -> pd.DatetimeIndex:
+    """UTC start of GB settlement periods: local midnight of the date plus (period - 1) half-hours.
+
+    Periods count elapsed half-hours of the local day (1..46 on the spring
+    change day, 1..50 on the autumn one), so the offset is added in absolute
+    time after converting midnight.
+    """
+    dates = pd.DatetimeIndex(pd.to_datetime(settlement_date)).normalize()
+    if dates.tz is not None:
+        dates = dates.tz_localize(None)
+    midnight_utc = local_to_utc_tz(dates, tz)
+    periods = np.asarray(settlement_period, dtype="int64")
+    return (midnight_utc + pd.to_timedelta((periods - 1) * 30, unit="m")).as_unit("ns")
 
 
 def issue_times(start_date, end_date, cfg: ForecastConfig) -> pd.DatetimeIndex:

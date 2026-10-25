@@ -49,3 +49,19 @@ forecast:
     lambda_selection: aic              # aic | bic | cv
     n_jobs: -1
     write_component_models: false      # also write lear_w56, lear_w84, ... for diagnostics
+
+ingest:
+  exog:
+    # Exogenous forecast vintages (stage S2): one processed parquet per source in data/processed/exog/.
+    start: 2023-01-01              # first publish/target date, inclusive
+    end: 2026-10-02                # exclusive; covers 728-day windows, warm-up, validation and the backtest
+    timezone: Europe/London        # settlement-period clock
+    max_lead_hours: 48             # keep vintages up to 48 h ahead of their target (the embedded archive has 13-day horizons)
+    capacity_tolerance: 1.1        # value_mw <= capacity_mw * 1.1 where a capacity is reported
+    plausible_mw:                  # [min, max] sanity bounds per variable
+      wind_da_mw: [0, 40000]
+      wind_neso_da_mw: [0, 40000]
+      embedded_wind_mw: [0, 20000]
+      embedded_solar_mw: [0, 40000]
+      demand_da_mw: [10000, 65000]
+    sleep_s: 0.2                   # pause between API calls

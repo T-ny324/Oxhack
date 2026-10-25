@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: install format lint test data data-prices forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke all
+.PHONY: install format lint test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke all
 
 install:
 	$(PYTHON) -m pip install -U pip
@@ -23,7 +23,14 @@ PRICES_PROVIDER ?= APXMIDP
 data-prices:
 	$(PYTHON) -m v2g.ingest.elexon_mid --start $(PRICES_START) --end $(PRICES_END) --provider $(PRICES_PROVIDER)
 
-data: data-prices
+# Exogenous forecast vintages (wind, embedded wind/solar, demand) -> data/processed/exog/
+data-exog:
+	$(PYTHON) -m v2g.ingest.elexon_ndf
+	$(PYTHON) -m v2g.ingest.elexon_windfor
+	$(PYTHON) -m v2g.ingest.neso_embedded_forecast
+	$(PYTHON) -m v2g.ingest.neso_wind_forecast
+
+data: data-prices data-exog
 
 # --- Forecasts (stage S3). Contract parquet: artefacts/forecasts/price_quantiles.parquet
 forecast-naive:

@@ -156,6 +156,53 @@ class ForecastConfig(BaseModel):
         return edges
 
 
+class ExogIngestConfig(BaseModel):
+    """Ingest settings for exogenous forecast vintages (``ingest.exog`` in config/assumptions.yaml)."""
+
+    model_config = ConfigDict(extra="forbid")
+    start: date  # first publish/target date, inclusive
+    end: date  # exclusive
+    timezone: str  # IANA zone of the settlement-period clock
+    max_lead_hours: float = Field(
+        gt=0
+    )  # keep vintages up to this far ahead of their target
+    capacity_tolerance: float = Field(
+        ge=1.0
+    )  # value <= capacity * tolerance where capacity is reported
+    plausible_mw: dict[str, list[float]]  # variable -> [min, max]
+    sleep_s: float = Field(ge=0)
+
+    @field_validator("timezone")
+    @classmethod
+    def _known_zone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"unknown timezone {value!r}") from exc
+        return value
+
+    @field_validator("plausible_mw")
+    @classmethod
+    def _ranges(cls, value: dict[str, list[float]]) -> dict[str, list[float]]:
+        for name, bounds in value.items():
+            if len(bounds) != 2 or bounds[0] >= bounds[1]:
+                raise ValueError(
+                    f"plausible_mw[{name}] must be [min, max] with min < max, got {bounds}"
+                )
+        return value
+
+    @model_validator(mode="after")
+    def _ordered(self) -> ExogIngestConfig:
+        if self.end <= self.start:
+            raise ValueError("ingest.exog end must be after start")
+        return self
+
+
+class IngestConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    exog: ExogIngestConfig
+
+
 class Assumptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
     region: str
@@ -169,3 +216,4 @@ class Assumptions(BaseModel):
     participation: dict[str, float]
     price_policy: dict[str, float | bool]
     forecast: ForecastConfig
+    ingest: IngestConfig
