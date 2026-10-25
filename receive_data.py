@@ -2,7 +2,7 @@ import os
 import paho.mqtt.client as mqtt
 
 # Must be the SAME broker the Pico connected to (see the Pico's [mqtt] connecting... log line).
-BROKER = os.environ.get("MQTT_BROKER", "test.mosquitto.org")
+BROKER = os.environ.get("MQTT_BROKER", "broker.emqx.io")
 PORT = 1883
 
 INPUT_TOPIC = "v2g/oxhack-4000/input"      # where send_data.py publishes
