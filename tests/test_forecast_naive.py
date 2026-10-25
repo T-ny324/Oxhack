@@ -39,7 +39,22 @@ CFG = ForecastConfig(
         "lambda_selection": "aic",
         "n_jobs": -1,
         "write_component_models": False,
+        "lambda_selection_by_model": {"lear": "aic", "lear_x": "aic"},
     },
+    exog={
+        "enabled_for_models": ["lear_x"],
+        "variables": [
+            "wind_da_mw",
+            "embedded_wind_mw",
+            "embedded_solar_mw",
+            "demand_da_mw",
+        ],
+        "exog_known_lag_minutes": 0,
+        "include_residual_load": True,
+        "sources": ["elexon_ndf", "elexon_windfor", "neso_embedded_forecast"],
+    },
+    validation_window={"start": "2025-04-01", "end": "2025-09-30"},
+    guard={"lo": -500, "hi": 5000},
 )
 HALF_HOUR = pd.Timedelta("30min")
 
@@ -93,6 +108,7 @@ def test_assumptions_yaml_has_a_valid_forecast_section():
         Assumptions.model_validate(yaml.safe_load(fh))  # whole file still validates
     assert window_dates(cfg, "smoke") == (date(2025, 11, 3), date(2025, 11, 30))
     assert window_dates(cfg, "backtest") == (date(2025, 10, 1), date(2026, 9, 30))
+    assert window_dates(cfg, "validation") == (date(2025, 4, 1), date(2025, 9, 30))
 
 
 def test_config_rejects_bad_values():
@@ -366,6 +382,26 @@ def test_validator_rejects_contract_violations():
         fio.validate_forecasts(
             valid_frame().assign(ref_time_utc=utc("2025-01-01T00:00")), CFG
         )
+
+
+def test_validator_enforces_the_plausibility_guard():
+    too_high = valid_frame()
+    too_high.loc[4, "q90"] = 12_000.0
+    with pytest.raises(ValueError, match="plausibility guard"):
+        fio.validate_forecasts(too_high, CFG)
+    too_low = valid_frame(with_q=False)
+    too_low.loc[2, "p50"] = -750.0
+    with pytest.raises(ValueError, match="plausibility guard"):
+        fio.validate_forecasts(too_low, CFG)
+    edge = valid_frame()
+    edge.loc[0, "q10"], edge.loc[0, "p50"], edge.loc[0, "q90"] = (
+        -500.0,
+        0.0,
+        5000.0,
+    )  # bounds are inclusive
+    fio.validate_forecasts(edge, CFG)
+    with pytest.raises(ValueError, match="guard.hi"):
+        ForecastConfig(**{**CFG.model_dump(), "guard": {"lo": 100, "hi": 100}})
 
 
 def test_write_forecasts_upserts_by_model(tmp_path):

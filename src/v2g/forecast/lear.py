@@ -39,6 +39,13 @@ Method
 * Forecasts from all windows are averaged in price space -> model ``lear``.
   With ``write_component_models`` the per-window models ``lear_wNN`` are
   written as well.
+* Exogenous (raw-scale) features are clipped at prediction time to the
+  z-score range seen in the training window: a linear model must not
+  extrapolate an input far outside its support, and with the asinh
+  back-transform an out-of-range solar or demand value turned into forecasts
+  of 10^6 £/MWh (dawn/dusk solar slots in spring, after a winter-only
+  window). Price features are already compressed by asinh and are not
+  clipped, so prices-only ``lear`` is unaffected. Clipped counts are logged.
 * Recalibration every ``recalibrate_every_days``; in between the last fit
   (including its transform and scaler) is reused but each day's features are
   rebuilt. A NaN test feature (long gap in a past day) is replaced by the
@@ -203,13 +210,27 @@ class WindowFit:
     alpha: np.ndarray
     nnz: np.ndarray
     n_train: np.ndarray
+    clip_lo: np.ndarray | None = (
+        None  # per-feature z-score bounds applied at prediction (exog only)
+    )
+    clip_hi: np.ndarray | None = None
 
-    def predict(self, features_raw: np.ndarray) -> np.ndarray:
-        """£/MWh prediction for every model key from one raw feature vector."""
+    def standardise(self, features_raw: np.ndarray) -> tuple[np.ndarray, int]:
+        """Transform + z-score one raw feature vector; returns (z, number of clipped features)."""
         x = np.array(features_raw, dtype="float64")
         x[self.price_mask] = self.transform.forward(x[self.price_mask])
         z = (x - self.feature_mean) / self.feature_std
         z[~np.isfinite(z)] = 0.0  # unknown feature -> training mean
+        clipped = 0
+        if self.clip_lo is not None:
+            out_of_range = (z < self.clip_lo) | (z > self.clip_hi)
+            clipped = int(out_of_range.sum())
+            z = np.clip(z, self.clip_lo, self.clip_hi)
+        return z, clipped
+
+    def predict(self, features_raw: np.ndarray) -> np.ndarray:
+        """£/MWh prediction for every model key from one raw feature vector."""
+        z, _ = self.standardise(features_raw)
         return self.transform.inverse(self.coef @ z + self.intercept)
 
 
@@ -226,19 +247,30 @@ class LearForecaster:
         windows: list[int] | None = None,
         n_jobs: int | None = None,
         lambda_selection: str | None = None,
+        model_name: str = MODEL_NAME,
+        exog=None,
     ):
+        """``exog``: an ExogVintages switches exogenous features on; None means prices only."""
         self.data = data
         self.cfg = cfg
+        self.model_name = model_name
+        self.exog = exog
         self.windows = sorted(windows or cfg.lear.calibration_windows_days)
         self.n_jobs = cfg.lear.n_jobs if n_jobs is None else n_jobs
-        self.criterion = lambda_selection or cfg.lear.lambda_selection
+        self.criterion = (
+            lambda_selection
+            or cfg.lear.lambda_selection_by_model.get(model_name)
+            or cfg.lear.lambda_selection
+        )
         if self.criterion not in ("aic", "bic", "cv"):
             raise ValueError(
                 f"lambda_selection must be aic, bic or cv, got {self.criterion!r}"
             )
         self.keys = model_keys(cfg)
         self.key_index = {k: i for i, k in enumerate(self.keys)}
-        self.names = feature_names(cfg)
+        self.names = feature_names(
+            cfg, exog.feature_names if exog is not None else None
+        )
         self.price_mask = price_feature_mask(self.names)
         self._features: dict[date, np.ndarray] = {}
         self._targets: dict[date, np.ndarray] = {}
@@ -249,7 +281,11 @@ class LearForecaster:
     def features(self, d: date) -> np.ndarray:
         if d not in self._features:
             vector, names = build_features(
-                self.issue_time(d), self.data.day_matrix, self.data.prices_raw, self.cfg
+                self.issue_time(d),
+                self.data.day_matrix,
+                self.data.prices_raw,
+                self.cfg,
+                exog=self.exog,
             )
             if names != self.names:
                 raise RuntimeError("feature layout changed between issues")
@@ -342,6 +378,8 @@ class LearForecaster:
                     alpha=alpha,
                     nnz=nnz,
                     n_train=n_train,
+                    clip_lo=np.where(self.price_mask, -np.inf, Xs.min(axis=0)),
+                    clip_hi=np.where(self.price_mask, np.inf, Xs.max(axis=0)),
                 )
             )
         return fits
@@ -357,7 +395,20 @@ class LearForecaster:
                 d,
                 int((~np.isfinite(x)).sum()),
             )
-        per_window = np.vstack([f.predict(x) for f in fits])  # (n_windows, n_models)
+        standardised = [f.standardise(x) for f in fits]
+        clipped = sum(c for _, c in standardised)
+        if clipped:
+            log.info(
+                "%s: %d exogenous feature values clipped to the training range",
+                d,
+                clipped,
+            )
+        per_window = np.vstack(
+            [
+                f.transform.inverse(f.coef @ z + f.intercept)
+                for f, (z, _) in zip(fits, standardised)
+            ]
+        )  # (n_windows, n_models)
         local = targets.tz_convert(tzinfo(self.cfg))
         blocks = np.where(local.date == d, "A", "B")
         slots = slot_of(local)
@@ -417,22 +468,36 @@ class _SelectionGroups:
                 for _, slot in keys
             ]
         )
+        prefixes = [
+            ("today", "today_"),
+            *[(f"dm{k}", f"dm{k}_") for k in PAST_DAYS],
+            ("dow", "dow_"),
+        ]
+        price_like = np.array([n.startswith(("today_", "dm", "dow_")) for n in names])
+        exog_series = sorted(
+            {
+                n.rsplit("_d", 1)[0]
+                for n, is_price in zip(names, price_like)
+                if not is_price
+            }
+        )
+        prefixes += [(f"exog:{e}", f"{e}_d") for e in exog_series]
         self.group_mask = {
-            g: np.array([n.startswith(prefix) for n in names])
-            for g, prefix in [
-                ("today", "today_"),
-                *[(f"dm{k}", f"dm{k}_") for k in PAST_DAYS],
-                ("dow", "dow_"),
-            ]
+            g: np.array([n.startswith(prefix) for n in names]) for g, prefix in prefixes
         }
+        self.exog_mask = ~price_like
         self.same_hits = {b: dict.fromkeys(self.same_idx, 0.0) for b in ("A", "B")}
         self.same_n = {b: dict.fromkeys(self.same_idx, 0) for b in ("A", "B")}
         self.group_sum = {b: dict.fromkeys(self.group_mask, 0.0) for b in ("A", "B")}
         self.n_models = {b: 0 for b in ("A", "B")}
+        self.selected_exog = {b: 0.0 for b in ("A", "B")}
+        self.selected_total = {b: 0.0 for b in ("A", "B")}
 
     def add(self, coef: np.ndarray) -> None:
         selected = coef != 0
         for block, rows in self.rows.items():
+            self.selected_total[block] += float(selected[rows].sum())
+            self.selected_exog[block] += float(selected[rows][:, self.exog_mask].sum())
             for group, idx in self.same_idx.items():
                 valid = rows[idx[rows] >= 0]
                 self.same_hits[block][group] += float(selected[valid, idx[valid]].sum())
@@ -462,6 +527,19 @@ class _SelectionGroups:
                         "group": group,
                         "metric": "mean_selected_count",
                         "value": self.group_sum[block][group] / n if n else np.nan,
+                    }
+                )
+            total = self.selected_total[block]
+            for group, count in (
+                ("exogenous", self.selected_exog[block]),
+                ("price", total - self.selected_exog[block]),
+            ):
+                out.append(
+                    {
+                        "block": block,
+                        "group": group,
+                        "metric": "share_of_selected",
+                        "value": count / total if total else np.nan,
                     }
                 )
         return pd.DataFrame(out, columns=["block", "group", "metric", "value"])
@@ -500,6 +578,8 @@ def run(
     n_jobs: int | None = None,
     lambda_selection: str | None = None,
     model_name: str = MODEL_NAME,
+    exog: bool | None = None,
+    exog_dir: Path | str | None = None,
     write_components: bool | None = None,
     diagnostics_path: Path | str | None = DEFAULT_DIAGNOSTICS_PATH,
     top_features_path: Path | str | None = DEFAULT_TOP_FEATURES_PATH,
@@ -516,8 +596,26 @@ def run(
     )
 
     data = load_lear_data(prices_path, cfg)
+    use_exog = model_name in cfg.exog.enabled_for_models if exog is None else exog
+    vintages = None
+    if use_exog:
+        from v2g.forecast.exog import load_exog
+
+        vintages = load_exog(cfg, exog_dir) if exog_dir else load_exog(cfg)
+        log.info(
+            "%s: exogenous features on (%d series, %d vintage rows)",
+            model_name,
+            len(vintages.series),
+            vintages.n_rows,
+        )
     forecaster = LearForecaster(
-        data, cfg, windows=windows, n_jobs=n_jobs, lambda_selection=lambda_selection
+        data,
+        cfg,
+        windows=windows,
+        n_jobs=n_jobs,
+        lambda_selection=lambda_selection,
+        model_name=model_name,
+        exog=vintages,
     )
     first = warmup_start(start, cfg)
     dates = [first + timedelta(days=i) for i in range((end - first).days + 1)]
@@ -642,7 +740,9 @@ def format_feature_groups(groups: pd.DataFrame) -> str:
     count = groups[groups["metric"] == "mean_selected_count"].pivot(
         index="group", columns="block", values="value"
     )
-    order = ["today", *[f"dm{k}" for k in PAST_DAYS], "dow"]
+    order = ["today", *[f"dm{k}" for k in PAST_DAYS], "dow"] + sorted(
+        g for g in count.index if g.startswith("exog:")
+    )
     table = pd.DataFrame(
         {
             "same-slot selected A": same.reindex(order)["A"].map(
@@ -656,7 +756,17 @@ def format_feature_groups(groups: pd.DataFrame) -> str:
         }
     )
     table.index.name = "feature group"
-    return table.to_string()
+    share = groups[groups["metric"] == "share_of_selected"].pivot(
+        index="group", columns="block", values="value"
+    )
+    share_txt = " | ".join(
+        f"{g}: {100 * share.loc[g, 'A']:.0f}% (A), {100 * share.loc[g, 'B']:.0f}% (B)"
+        for g in ("exogenous", "price")
+        if g in share.index and share.loc[g].notna().all()
+    )
+    return table.to_string() + (
+        f"\n  share of selected coefficients: {share_txt}" if share_txt else ""
+    )
 
 
 def format_top_features(top: pd.DataFrame) -> str:
@@ -699,7 +809,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="override the config criterion",
     )
     p.add_argument(
-        "--model-name", default=MODEL_NAME, help="model name to write (default lear)"
+        "--model-name",
+        default=MODEL_NAME,
+        help="model name to write (default lear; lear_x enables exog via config)",
+    )
+    p.add_argument(
+        "--exog",
+        dest="exog",
+        action="store_true",
+        default=None,
+        help="force exogenous features on",
+    )
+    p.add_argument(
+        "--no-exog",
+        dest="exog",
+        action="store_false",
+        help="force exogenous features off",
     )
     p.add_argument(
         "--write-components",
@@ -738,6 +863,7 @@ def main(argv: list[str] | None = None) -> None:
         n_jobs=args.n_jobs,
         lambda_selection=args.lambda_selection,
         model_name=args.model_name,
+        exog=args.exog,
         write_components=True if args.write_components else None,
         diagnostics_path=args.diagnostics,
         top_features_path=args.top_features,

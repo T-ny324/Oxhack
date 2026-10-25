@@ -15,7 +15,7 @@ import yaml
 from shared.schema import ForecastConfig
 
 DEFAULT_ASSUMPTIONS_PATH = Path("config/assumptions.yaml")
-WINDOWS = ("smoke", "backtest")
+WINDOWS = ("smoke", "backtest", "validation")
 
 
 def load_forecast_config(path: Path | str = DEFAULT_ASSUMPTIONS_PATH) -> ForecastConfig:
@@ -30,5 +30,9 @@ def window_dates(cfg: ForecastConfig, window: str) -> tuple[date, date]:
     """Inclusive local issue dates for a named window ('smoke' or 'backtest')."""
     if window not in WINDOWS:
         raise ValueError(f"window must be one of {WINDOWS}, got {window!r}")
-    win = cfg.smoke_window if window == "smoke" else cfg.backtest_window
+    win = {
+        "smoke": cfg.smoke_window,
+        "backtest": cfg.backtest_window,
+        "validation": cfg.validation_window,
+    }[window]
     return win.start, win.end

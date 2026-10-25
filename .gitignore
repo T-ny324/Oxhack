@@ -149,6 +149,7 @@ vite.config.ts.timestamp-*
 .turbo
 
 # Python
+.ipynb_checkpoints/
 __pycache__/
 *.py[cod]
 .venv/

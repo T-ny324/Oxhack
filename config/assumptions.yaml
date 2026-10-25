@@ -49,3 +49,33 @@ forecast:
     lambda_selection: aic              # aic | bic | cv
     n_jobs: -1
     write_component_models: false      # also write lear_w56, lear_w84, ... for diagnostics
+    # Criterion per model, frozen after validation on validation_window (see src/v2g/forecast/README.md).
+    lambda_selection_by_model: {lear: aic, lear_x: aic}   # validation 2025-04-01..2025-09-30: lear 17.44 vs 17.61, lear_x 14.50 vs 14.52 MAE
+  exog:
+    enabled_for_models: [lear_x]
+    # Exogenous forecast vintages used as features (see data/processed/exog/). wind_neso_da_mw is
+    # ingested but excluded: its vintage stamps are unreliable from late 2025.
+    variables: [wind_da_mw, embedded_wind_mw, embedded_solar_mw, demand_da_mw]
+    exog_known_lag_minutes: 0         # a vintage is usable if forecast_made_utc <= issue - this lag
+    include_residual_load: true       # derived: demand - wind - embedded wind - embedded solar, per slot
+    sources: [elexon_ndf, elexon_windfor, neso_embedded_forecast]
+  # Criterion selection happens here, never on the backtest window.
+  validation_window: {start: 2025-04-01, end: 2025-09-30}
+  # Every written p50/q10/q90 must lie in [lo, hi] £/MWh; write_forecasts refuses otherwise.
+  guard: {lo: -500, hi: 5000}
+
+ingest:
+  exog:
+    # Exogenous forecast vintages (stage S2): one processed parquet per source in data/processed/exog/.
+    start: 2023-01-01              # first publish/target date, inclusive
+    end: 2026-10-02                # exclusive; covers 728-day windows, warm-up, validation and the backtest
+    timezone: Europe/London        # settlement-period clock
+    max_lead_hours: 48             # keep vintages up to 48 h ahead of their target (the embedded archive has 13-day horizons)
+    capacity_tolerance: 1.1        # value_mw <= capacity_mw * 1.1 where a capacity is reported
+    plausible_mw:                  # [min, max] sanity bounds per variable
+      wind_da_mw: [0, 40000]
+      wind_neso_da_mw: [0, 40000]
+      embedded_wind_mw: [0, 20000]
+      embedded_solar_mw: [0, 40000]
+      demand_da_mw: [10000, 65000]
+    sleep_s: 0.2                   # pause between API calls
