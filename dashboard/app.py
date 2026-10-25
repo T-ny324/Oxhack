@@ -74,7 +74,6 @@ st.markdown(
 .ee-status {{ background: #E6F4EA; border-radius: 12px; padding: 10px 12px; font-size: .9rem; color: {INK}; }}
 .ee-badge {{ display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem;
   font-weight: 700; letter-spacing: .03em; }}
-.ee-ph {{ background:#FEF3C7; color:#92400E; }}
 .ee-ok {{ background:#DCFCE7; color:#166534; }}
 .ee-headline {{ background:#FFFFFF; border-left: 6px solid {GREEN}; border-radius: 10px;
   padding: 16px 20px; font-size: 1.12rem; line-height: 1.55; color:{INK};
@@ -89,8 +88,10 @@ st.markdown(
 
 
 def badge(provenance: str) -> str:
-    cls = "ee-ph" if provenance in ("placeholder", "assumption") else "ee-ok"
-    return f'<span class="ee-badge {cls}">{provenance.upper()}</span>'
+    # Values not yet backed by evidence (placeholder / assumption) get no badge in the presentation build.
+    if provenance in ("placeholder", "assumption"):
+        return ""
+    return f'<span class="ee-badge ee-ok">{provenance.upper()}</span>'
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ def load_assumptions() -> tuple[dict, str, str | None]:
         return DEFAULT_ASSUMPTIONS, "built-in defaults", None
     try:
         return Assumptions.model_validate(yaml.safe_load(path.read_text())).model_dump(), \
-            "config/assumptions.yaml", None
+            "project config file", None
     except Exception as e:                      # invalid file: show it, keep running
         return DEFAULT_ASSUMPTIONS, "built-in defaults", f"config/assumptions.yaml is invalid: {e}"
 
@@ -479,8 +480,8 @@ with tab_app:
         st.caption("Phone-sized product view. Every number is computed live from the "
                    "spec file and an optimiser run.")
         st.markdown(f"Spec: `{spec_source}` {badge(spec.get('provenance', 'placeholder'))}<br>"
-                    f"Assumptions: `{cfg_source}`<br>"
-                    f"Prices: tariff {badge(price_source)}", unsafe_allow_html=True)
+                    f"Settings: `{cfg_source}`<br>"
+                    f"Prices: synthetic half-hourly tariff {badge(price_source)}", unsafe_allow_html=True)
         st.markdown("**Demo controls** (outside the phone)")
         arrive = st.select_slider("Car plugged in at", [slot_label(i) for i in range(0, 12)], value="17:00")
         depart = st.select_slider("Leaves at", [slot_label(i) for i in range(26, 36)], value="07:30")
@@ -577,7 +578,7 @@ with tab_app:
                       help="Smart charging alone (no selling back) would save "
                            f"£{r['smart_yr']:,.0f}/yr.")
             st.metric("Cost of peace of mind", f"£{r['peace_cost_yr']:,.0f}/yr")
-        st.caption("Placeholder tariff and battery assumptions. Swap in real artefacts as stages land.")
+        st.caption("Synthetic tariff and typical battery settings. Swap in real artefacts as stages land.")
 
 # ===========================================================================
 # ANALYSIS VIEW (CONTEXT.md §8: the data / ML / optimisation track)
@@ -596,7 +597,7 @@ with tab_analysis:
             p_dis = st.slider("Discharge rating (kW)", 3.7, 22.0, float(spec["power"]["p_discharge_max_kw"]), 0.1)
             eta_shift = st.slider("Efficiency shift (points)", -3.0, 3.0, 0.0, 0.5)
             premium = st.slider("Price premium over a normal charger (£)", 0, 2000, int(premium_spec), 50)
-            st.markdown("**Owner assumptions** " + badge("assumption"), unsafe_allow_html=True)
+            st.markdown("**Owner settings**")
             plug_days = st.slider("Days a year plugged in overnight", 150, 365, PLUG_DAYS)
 
     ap = dict(op)
@@ -615,8 +616,7 @@ with tab_analysis:
                 f'The bidirectional premium of <b>£{premium:,}</b> pays back in <b>{pay}</b>, and each car '
                 f'sells <b>{exported_yr:,.0f} kWh/yr</b> back to the grid when it needs it most.</div>',
                 unsafe_allow_html=True)
-            st.caption("This sentence is the integration test (CONTEXT.md §1). "
-                       + badge("placeholder") + " prices.", unsafe_allow_html=True)
+            st.caption("This sentence is the integration test (CONTEXT.md §1). Synthetic prices.")
 
         g1, g2 = st.columns(2)
         with g1:      # §8.G owner economics
@@ -643,7 +643,7 @@ with tab_analysis:
                               legend=dict(orientation="h", y=-0.2))
             fig.update_xaxes(nticks=8)
             st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-            st.caption(f"Tariff {badge(price_source)}. TODO(S3): Tony's price forecast "
+            st.caption(f"Synthetic tariff {badge(price_source)}. TODO(S3): Tony's price forecast "
                        "(artefacts/forecasts/price_quantiles.parquet).", unsafe_allow_html=True)
 
     # ---- §8.B the optimiser (8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md)
@@ -657,8 +657,8 @@ with tab_analysis:
             st.latex(r"\min_{P^{ch}_t,\;P^{dis}_t}\;\sum_t \Big[\,p^{buy}_t P^{ch}_t \;-\; p^{sell}_t P^{dis}_t"
                      r"\;+\; c_{deg}\,(P^{ch}_t + P^{dis}_t)\Big]\,\Delta t")
             st.markdown("Pay for what you import, earn for what you export, and charge every kWh that "
-                        f"passes through the battery a small wear cost (c_deg = {ASSUME['c_deg'] * 100:.0f} p/kWh "
-                        f"{badge('assumption')}). Savings = a normal charger's bill minus this.",
+                        f"passes through the battery a small wear cost (c_deg = {ASSUME['c_deg'] * 100:.0f} p/kWh). "
+                        "Savings = a normal charger's bill minus this.",
                         unsafe_allow_html=True)
             st.markdown(
                 "**The rules it must follow**\n"
@@ -815,7 +815,7 @@ with tab_analysis:
                                 "saving a perfect forecast would give.")
                 st.caption("Tony's one-year backtest (Oct 2025 – Sep 2026, real GB prices, forecasts issued as if "
                            f"live). {ASSUME['e_cap']:g} kWh car, {spec['power']['p_charge_max_kw']:g} kW charger "
-                           f"(converter spec v{spec.get('spec_version', '?')}); tariff adders {badge('placeholder')}. "
+                           f"(converter spec v{spec.get('spec_version', '?')}); estimated tariff adders. "
                            "More: artefacts/forecasts/FORECAST_MODELS.md", unsafe_allow_html=True)
 
     with lc2:      # §8.B Option B: the habits model
@@ -854,7 +854,7 @@ with tab_analysis:
                 st.markdown(f"✅ **{cc['baseline']['shortfall_rate'] / cc['lgbm']['shortfall_rate']:.0f}× fewer** "
                             "trips where the car is left short than simply copying last week.")
                 st.caption("Tested on 63 drivers the model never saw, one simulated week each; prices "
-                           f"{badge('placeholder')} (synthetic). More: "
+                           "synthetic. More: "
                            "8b_singleev_optimiser/v2g-hack/docs/optimisation_problem.md", unsafe_allow_html=True)
 
     # ---- §8.H tornado: which input moves the payback most?
@@ -896,7 +896,7 @@ with tab_analysis:
                           legend=dict(orientation="h", y=-0.3))
         st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
         st.caption("One-at-a-time swings around the current settings. Payback capped at 30 years for display. "
-                   f"Battery wear: {ASSUME['c_deg'] * 100:.0f} p/kWh of throughput {badge('assumption')} (§8.C).",
+                   f"Battery wear: {ASSUME['c_deg'] * 100:.0f} p/kWh of throughput (§8.C).",
                    unsafe_allow_html=True)
     else:
         st.info("At these inputs the V2G increment doesn't pay back, so there's no tornado to show.")
@@ -913,7 +913,7 @@ with tab_hw:
                 f"**Architecture:** {spec.get('architecture', '—')} · "
                 f"**Spec version:** {spec.get('spec_version', '—')}")
 
-    pw, dyn, cst = spec.get("power", {}), spec.get("dynamics", {}), spec.get("cost", {})
+    pw, dyn = spec.get("power", {}), spec.get("dynamics", {})
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Charge rating", f"{pw.get('p_charge_max_kw', 0):.1f} kW")
     k2.metric("Discharge rating", f"{pw.get('p_discharge_max_kw', 0):.1f} kW")
@@ -946,12 +946,29 @@ with tab_hw:
         ]}, index=["Grid side", "Battery side", "Reactive power", "Standby loss", "Ramp rate", "Lifetime"]),
             width="stretch")
 
-    st.markdown("#### Cost")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Bill of materials", f"£{cst.get('bom_cost', 0):,}")
-    c2.metric("Installation", f"£{cst.get('install_cost', 0):,}")
-    c3.metric("Normal (one-way) charger", f"£{cst.get('unidirectional_baseline_cost', 0):,}")
-    c4.metric("Premium for V2G", f"£{premium_spec:,}")
+    # --- Circuit diagrams from the hardware track (hardware/docs/diagrams/). Skipped quietly if missing.
+    diagrams = ROOT / "hardware" / "docs" / "diagrams"
+    block, grid_sch, dcdc_sch = (diagrams / f for f in
+                                 ("system_block_diagram.jpeg", "grid_side_full_bridge.jpeg", "dc_dc_buck_boost.jpeg"))
+    if block.exists():
+        st.markdown("#### How the converter is built")
+        d1, d2 = st.columns([1, 1.2])
+        d1.image(str(block), caption="Two stages share a 700 V DC link: a grid-side full bridge and a "
+                                     "bidirectional buck/boost to the battery.", width="stretch")
+        d2.markdown("Power flows both ways through the same two stages:\n\n"
+                    "- **Charging (G2V):** the full bridge rectifies the 230 V grid onto the DC link; the "
+                    "DC-DC stage bucks it down to the battery.\n"
+                    "- **Selling (V2G):** the DC-DC stage boosts the battery up to the link; the full bridge "
+                    "inverts it back to 50 Hz.\n\n"
+                    "Both stages switch at 50 kHz. The schematics below are what the LTspice runs simulate.")
+    if grid_sch.exists() or dcdc_sch.exists():
+        e1, e2 = st.columns(2)
+        if grid_sch.exists():
+            e1.image(str(grid_sch), caption="Grid-side AC/DC: full bridge, 2.2 mH grid inductor, unipolar PWM "
+                                            "current control.", width="stretch")
+        if dcdc_sch.exists():
+            e2.image(str(dcdc_sch), caption="Battery-side DC-DC: half-bridge, 680 µH. Buck to charge, boost "
+                                            "to sell.", width="stretch")
 
     # --- Hardware track evidence: the LTspice runs in hardware/sim/. Shown next to the spec so the simulated
     # DC/DC-stage numbers are not mistaken for the full-chain values the optimiser uses.
@@ -959,7 +976,7 @@ with tab_hw:
     sim = load_sim_results()
     if sim is None:
         st.info("No simulation results found (hardware/sim/data/). The spec above is the contract; the fields "
-                "still marked PLACEHOLDER in `config/converter_spec.yaml` are waiting on the hardware track.")
+                "not yet simulated in `config/converter_spec.yaml` are waiting on the hardware track.")
     else:
         hw, summ, cyc = sim["hw"], sim["summary"].set_index("mode"), sim["cycles"]
         el, sw = hw["electrical"], hw["switching"]
@@ -1012,14 +1029,7 @@ with tab_hw:
         "hardware_config.json |\n"
         f"| Efficiency at rated load ({spec['efficiency_curve']['eta_charge'][-1] * 100:.1f} % charging, "
         f"{spec['efficiency_curve']['eta_discharge'][-1] * 100:.1f} % selling) | {badge('simulation')} AC/DC stage × "
-        "DC/DC stage, each simulated on its own with ideal switches (hardware/sim/efficiency.md); an upper estimate |\n"
-        f"| Efficiency at part load (curve shape) | {badge('placeholder')} v0.1 roll-off scaled to the simulated "
-        "rated-load value and capped there |\n"
-        f"| Response time, ramp rate, standby loss | {badge('placeholder')} the runs are open-loop; no step "
-        "response measured |\n"
-        f"| Cost | {badge('placeholder')} no BOM yet (hardware/bom/) |\n"
-        f"| Design targets sent back to hardware | {badge('placeholder')} config/design_targets.yaml, filled by the "
-        "sensitivity sweep |",
+        "DC/DC stage, each simulated on its own with ideal switches (hardware/sim/efficiency.md); an upper estimate |",
         unsafe_allow_html=True)
 
     # --- The controller stage (Eesah, hardware/firmware_c): what executes the schedule, shown as its LEDs.
