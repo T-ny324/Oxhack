@@ -748,6 +748,30 @@ with tab_hw:
     c3.metric("Normal (one-way) charger", f"£{cst.get('unidirectional_baseline_cost', 0):,}")
     c4.metric("Premium for V2G", f"£{premium_spec:,}")
 
+    # --- Circuit diagrams from the hardware track (hardware/docs/diagrams/). Skipped quietly if missing.
+    diagrams = ROOT / "hardware" / "docs" / "diagrams"
+    block, grid_sch, dcdc_sch = (diagrams / f for f in
+                                 ("system_block_diagram.jpeg", "grid_side_full_bridge.jpeg", "dc_dc_buck_boost.jpeg"))
+    if block.exists():
+        st.markdown("#### How the converter is built")
+        d1, d2 = st.columns([1, 1.2])
+        d1.image(str(block), caption="Two stages share a 700 V DC link: a grid-side full bridge and a "
+                                     "bidirectional buck/boost to the battery.", width="stretch")
+        d2.markdown("Power flows both ways through the same two stages:\n\n"
+                    "- **Charging (G2V):** the full bridge rectifies the 230 V grid onto the DC link; the "
+                    "DC-DC stage bucks it down to the battery.\n"
+                    "- **Selling (V2G):** the DC-DC stage boosts the battery up to the link; the full bridge "
+                    "inverts it back to 50 Hz.\n\n"
+                    "Both stages switch at 50 kHz. The schematics below are what the LTspice runs simulate.")
+    if grid_sch.exists() or dcdc_sch.exists():
+        e1, e2 = st.columns(2)
+        if grid_sch.exists():
+            e1.image(str(grid_sch), caption="Grid-side AC/DC: full bridge, 2.2 mH grid inductor, unipolar PWM "
+                                            "current control.", width="stretch")
+        if dcdc_sch.exists():
+            e2.image(str(dcdc_sch), caption="Battery-side DC-DC: half-bridge, 680 µH. Buck to charge, boost "
+                                            "to sell.", width="stretch")
+
     # --- Hardware track evidence: the LTspice runs in hardware/sim/. Shown next to the spec so the simulated
     # DC/DC-stage numbers are not mistaken for the full-chain values the optimiser uses.
     st.markdown("#### What the simulation has pinned down")
