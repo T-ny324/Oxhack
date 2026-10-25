@@ -2,7 +2,7 @@
 
 > **Purpose of this file:** a single source of truth to feed an LLM (or the team) to generate the repo skeleton, pipeline stubs, interfaces and task split. It is deliberately **open-ended on deliverables** (a menu, not a fixed scope), but **strict on interfaces, units and the logical chain**, so that whatever subset gets built still fits together.
 >
-> **Status:** brainstorm v0.2 (adds app optimisation modes, §8.B.1). Items marked `ASSUMPTION` are guesses. Items marked `OPEN` need a team decision. Items marked `PLACEHOLDER` are numbers to be replaced by real outputs.
+> **Status:** brainstorm v0.4 (v0.2 added app optimisation modes, §8.B.1; v0.3 adds the app plan, §8.I; v0.4 narrows the scope to a **single vehicle**: fleet aggregation, EV adoption and national grid impact are out of scope (roadmap: "ExtraEnergy for fleets"), and the app has three views: owner, analysis, hardware). Items marked `ASSUMPTION` are guesses. Items marked `OPEN` need a team decision. Items marked `PLACEHOLDER` are numbers to be replaced by real outputs.
 
 ---
 
@@ -19,7 +19,11 @@
 
 ## 1. One-line pitch and the core thesis
 
-**Pitch:** *We sell a complete V2G product: a bidirectional EV charger (hardware) plus the software that runs it, which learns from each driver's usage and forecasts energy prices to decide when every vehicle, or a whole fleet, should charge and when it should sell back. The owner chooses how the software behaves: maximum savings, or the best savings while guaranteeing the car is charged to a level they pick whenever they need it. We show, with data, what that combined product is worth to the owner and to the grid, today and in 10 years.*
+**Pitch:** *We sell a complete V2G product: a bidirectional EV charger (hardware) plus the software that runs it, which learns from each driver's usage and forecasts energy prices to decide when the car should charge and when it should sell back. The owner chooses how the software behaves: maximum savings, or the best savings while guaranteeing the car is charged to a level they pick whenever they need it. We show, with data, what that combined product is worth to the owner, and how much energy each car sells back to the grid when it is needed most.*
+
+**Brand:** **ExtraEnergy** — *"Making energy work for you."* Green brand. Target market: any EV owner with a home mains connection, supported by government subsidies. Mission line: *Accelerating the EV transition.* (Source: `app_ideas.md`.)
+
+**Scope:** one vehicle and one home charger. **Roadmap, not built:** ExtraEnergy for fleets (many vehicles from one app); the owner view shows it as "coming soon".
 
 **The logical chain.** Every deliverable should hang off one of these links:
 
@@ -28,18 +32,14 @@
         ↓
 [Single vehicle]   →  optimal buy/sell schedule (per app mode)  →  £/yr per owner, battery wear
         ↓
-[Fleet]            →  × EVs plugged in × participation rate  →  GW / GWh of flexibility
-        ↓
-[Grid]             →  peak reduction, reliability (LOLE / ELCC), renewables absorbed
-        ↓
-[10-year view]     →  × EV adoption forecast  →  2026 → 2036 trajectory
+[Owner economics]  →  payback of the bidirectional premium, kWh sold back at peak
         ↓
 [Feedback]         →  "which converter rating / efficiency / cost maximises value?"
                        → back to the hardware team (the co-design loop)
 ```
 
 **The headline sentence the demo should end on (template):**
-> "Our **{P_rated} kW**, **{η_peak}%**-efficient charger, costing **{cost}**, run by our scheduling software, which learns each driver's habits and forecasts prices, earns an owner **{£/yr}**. That is **{uplift}%** more than a simple cheapest-hours timer. The system pays back in **{years}**. At **{participation}%** uptake, the {region} fleet in **2036** could supply **{GW}** of peak support, worth **{reliability metric}**."
+> "Our **{P_rated} kW**, **{η_peak}%**-efficient charger, costing **{cost}**, run by our scheduling software, which learns each driver's habits and forecasts prices, earns an owner **{£/yr}**. That is **{uplift}%** more than a simple cheapest-hours timer. The system pays back in **{years}**, and each car sells **{kWh/yr}** back to the grid when it is needed most."
 
 Every `{}` comes from a pipeline artefact. This sentence *is* the integration test.
 
@@ -48,7 +48,7 @@ The numbers come from these artefacts:
   - `revenue_learned` is the forecast-driven MPC schedule, using learned availability.
   - `revenue_rule_based` is ladder step 1 (cheapest-hours timer), on the same vehicles and price period.
   - Both are stored in `revenue_per_vehicle.json`.
-  - `OPEN`: raw revenue is negative because the owner still pays for driving energy, so the ratio breaks. Proposal: use **savings vs an unmanaged charger** for both terms.
+  - `OPEN`: raw revenue is negative because the owner still pays for driving energy, so the ratio breaks. Proposal: use **savings vs an unmanaged charger** for both terms. (The starter app in §8.I already does this: savings = unmanaged cost − managed cost, with both ending at the same SoC.)
 - `{£/yr}` uses the learned-software revenue, so the hardware and software claims share one number. `OPEN`: quote it for which app mode? Suggestion: quote "guaranteed charge" mode at a default target, and show "max savings" alongside.
 
 ---
@@ -60,7 +60,7 @@ The numbers come from these artefacts:
 | **Abdullah** | Electrical hardware, transistor/device-level design, **C++** | Hardware | C++ averaged/loss model of the converter → exports the efficiency table (§6) |
 | **Issa** | Electrical hardware, **C** | Hardware | Embedded-style C control loop (DAB phase-shift / PI), or a C loss calculator |
 | **Tony** | Advanced Python, ML modelling, optimisation | Data/ML | Owns optimisation (§8.B) and forecasting (§8.A) |
-| **Me** (generalist) | Python, modelling, ML | Data/ML + integration | Owns the schema, pipeline glue, adoption and grid analysis, dashboard and pitch |
+| **Me** (generalist) | Python, modelling, ML | Data/ML + integration | Owns the schema, pipeline glue, the habits model (§8.B Option B), **the app (§8.I)** and pitch |
 
 **Working principle:** the two halves stay mostly independent and meet at **one contract**: `config/converter_spec.yaml` (§6). The hardware team owns it. The data team consumes it, and returns `design_targets.yaml` (§6.4).
 
@@ -77,9 +77,10 @@ The numbers come from these artefacts:
 | Q3 | Region for grid and price data? | Parameterised as `region` in `config/assumptions.yaml`. Candidate regions: GB, a European bidding zone, a US ISO (§11). |
 | Q4 | AC or DC V2G architecture? | Present both in a trade-off table. Pick **DC off-board (wallbox)** as the primary design, since it's the cleanest power-electronics story. |
 | Q5 | Home charger (single-phase ~7 kW) or 3-phase/depot (11–22 kW+)? | Home single-phase primary. The sensitivity sweep covers the rest. |
-| Q6 | Is any physical hardware allowed or available? | `ASSUMPTION` no high-voltage hardware. A **low-voltage** demo only (§7.4). |
+| Q6 | Is any physical hardware allowed or available? | `ASSUMPTION` no high-voltage hardware. A **low-voltage** demo only (§7.3, H8). |
 | Q7 | Sponsor tools or APIs to use? | None assumed |
 | Q8 | Currency | Set in config. Prices are stored internally as currency/MWh. |
+| Q9 | Public repo allowed? (needed for the simplest free deploy, §8.I) | `ASSUMPTION` yes. If not, deploy from a private repo or demo locally only. |
 
 ---
 
@@ -118,26 +119,30 @@ flowchart LR
   end
 
   subgraph DATA[Data/ML track: Tony & me]
-    ING[Ingest: prices, demand, generation, EV stock, plug-in behaviour] --> FC[Price forecasting]
+    ING[Ingest: prices, plug-in behaviour] --> FC[Price forecasting]
     FC --> OPT[Single-EV schedule optimiser]
     MODE[App mode setting] --> OPT
     SPEC --> OPT
     DEG[Battery degradation model] --> OPT
-    ADOPT[EV adoption forecast 10y] --> FLEET[Fleet aggregation]
-    OPT --> FLEET
-    SPEC --> FLEET
-    FLEET --> GRID[Grid impact & reliability]
     OPT --> ECON[Owner economics / payback]
     SPEC --> ECON
-    GRID --> SENS[Sensitivity & design-space sweep]
-    ECON --> SENS
+    ECON --> SENS[Sensitivity & design-space sweep]
     SENS --> TGT[(design_targets.yaml)]
   end
 
+  subgraph APP[ExtraEnergy app: one Streamlit app]
+    OWN[Owner view: mode, target SoC, tonight's plan, £ saved]
+    ANA[Analysis view: prices, habits, £ and payback, cost of peace of mind, tornado]
+    HWV[Hardware view: converter spec, efficiency curve, cost, render]
+  end
+
   TGT -. feedback .-> T
-  GRID --> DASH[Dashboard / demo]
-  ECON --> DASH
-  CAD --> DASH
+  OPT --> OWN
+  MODE --> OWN
+  ECON --> ANA
+  SENS --> ANA
+  SPEC --> HWV
+  CAD --> HWV
 ```
 
 ---
@@ -183,7 +188,7 @@ uncertainty:                    # ± bands used in the sensitivity analysis
 ### 6.2 Rules for the contract
 
 - The hardware team may **change values but not field names or units** without bumping `spec_version`.
-- The data side derives everything from this file. Nobody hard-codes "7 kW" or "95%" anywhere else.
+- The data side derives everything from this file. Nobody hard-codes "7 kW" or "95%" anywhere else. **The app reads this file too**; its built-in defaults are only a fallback when the file is missing.
 - `provenance` is shown on the dashboard, so judges can see which numbers are calculated and which are assumed. That honesty is a credibility point.
 - Placeholders are realistic from hour 0, so **the data team is never blocked**.
 
@@ -191,9 +196,9 @@ uncertainty:                    # ± bands used in the sensitivity analysis
 
 | Quantity | Unit | Note |
 |---|---|---|
-| Power | kW (vehicle), GW (fleet) | Sign convention: **+ = grid → vehicle (charging)**, **− = vehicle → grid** |
-| Energy | kWh (vehicle), GWh (fleet) | |
-| Price | currency/MWh internally | 1 p/kWh = 10 £/MWh. Convert at ingest only. |
+| Power | kW | Sign convention: **+ = grid → vehicle (charging)**, **− = vehicle → grid** |
+| Energy | kWh | |
+| Price | currency/MWh internally | 1 p/kWh = 10 £/MWh. Convert at ingest only. (The owner view displays p/kWh, converted in one display helper.) |
 | Time | UTC timestamps internally, local time only for display | Watch **DST change days**: e.g. a GB clock-change day has 46 or 50 half-hour settlement periods, not 48 |
 | Resolution | 30 min default (`dt_h = 0.5`) | Configurable. Must match the price data's settlement period. |
 | SoC | fraction 0–1 | |
@@ -203,7 +208,7 @@ uncertainty:                    # ± bands used in the sensitivity analysis
 
 ```yaml
 # Output of the sensitivity/design-space sweep (§8.H)
-value_optimal_p_rated_kw: null      # rating beyond which extra kW adds little £ or GW
+value_optimal_p_rated_kw: null      # rating beyond which extra kW adds little £
 marginal_value_per_eta_point: null  # currency/yr per +1% efficiency → is better silicon worth it?
 max_cost_for_5yr_payback: null      # cost ceiling the BOM must hit
 min_response_time_for_freq_services_s: null
@@ -247,7 +252,7 @@ This closes the loop: hardware decisions become **data-driven**, and data result
 | H3 | Circuit simulation with waveforms (ZVS, ripple, phase-shift control) | LTspice, ngspice/PySpice, PLECS (if licensed), Simulink | validates H1/H2 |
 | H4 | **Closed-loop control in C**: PI current/voltage loop, phase-shift modulator, charge/discharge mode switch. Runs against the averaged model, or on a dev board. | C, for MCU targets like TI C2000 / STM32 | `dynamics` |
 | H5 | **BOM with real part numbers + cost** (SiC MOSFETs, gate drivers, magnetics cores, caps, MCU, contactors, enclosure) | Distributor catalogues; `bom.csv` | `cost.bom_cost` |
-| H6 | Schematic + PCB layout + **3D render** of the board/enclosure | **KiCad** (schematic → PCB → 3D viewer render), FreeCAD/Fusion/Blender for the enclosure | demo visuals |
+| H6 | Schematic + PCB layout + **3D render** of the board/enclosure | **KiCad** (schematic → PCB → 3D viewer render), FreeCAD/Fusion/Blender for the enclosure | demo visuals (shown in the analysis view) |
 | H7 | Standards & safety checklist (isolation, anti-islanding, RCD/DC fault detection, ISO 15118-20 comms, grid code) | Markdown | credibility |
 | H8 | **Low-voltage physical demo** (e.g. 12 V ↔ 24 V bidirectional buck-boost showing power-flow reversal on command) | Dev board + MOSFETs + INA current sensor | "it works" moment |
 
@@ -290,11 +295,11 @@ Each module lists: **question → method ladder (baseline → stretch) → input
   3. **MPC / rolling horizon** (re-optimise every period)
   4. stochastic or robust LP over forecast quantiles
   5. RL agent (PPO/SAC) as a comparison, e.g. in EV2Gym
-- **Tools:** cvxpy, Pyomo or PuLP with HiGHS/CBC (free solvers).
+- **Tools:** cvxpy, Pyomo or PuLP with HiGHS/CBC (free solvers). (The starter app uses `scipy.optimize.linprog` with HiGHS, which needs no extra install on Streamlit Cloud.)
 - **Inputs:** spec, price forecasts, availability profile, degradation cost, **app mode + user target** → **Outputs:** `schedule.parquet`, `revenue_per_vehicle.json` (one entry per mode)
 - **Papers:** Kempton & Tomić 2005 (×2, the V2G fundamentals and revenue maths); Sortomme & El-Sharkawi 2011/2012 (optimal V2G scheduling + ancillary services); Orfanoudakis et al. 2024 (EV2Gym simulator/benchmark).
 
-### 8.B.1 App optimisation modes (user setting) — NEW
+### 8.B.1 App optimisation modes (user setting)
 **Idea:** the app has a setting where the owner picks how the software behaves. In the background we keep several optimisation model variants and switch between them depending on the user's settings.
 
 | Mode | User picks | What changes in the optimiser |
@@ -306,6 +311,7 @@ Each module lists: **question → method ladder (baseline → stretch) → input
 - `OPEN`: what does "whenever they need it" mean?
   - (a) **ready by departure**: SoC ≥ target at each departure (declared in the app, or learned), or
   - (b) **always ready**: SoC ≥ target at every plugged-in moment, so V2G only ever uses energy above the target. This is robust to unpredictable trips and needs no departure prediction.
+  - The starter app exposes both as a toggle so the team can feel the difference before deciding.
 - `OPEN`: in max-savings mode, is the safety floor a hard constraint or a soft penalty? Suggestion: hard floor = next trip energy + reserve.
 - **Demo number:** the £/yr gap between the two modes = **"the cost of peace of mind"**. A slider for the target % shows the trade-off live (target % vs £/yr).
 - Config: `optimiser.mode` (`max_savings` | `guaranteed_charge`) and `optimiser.target_soc` in `assumptions.yaml`; per-user overrides later.
@@ -318,35 +324,8 @@ Each module lists: **question → method ladder (baseline → stretch) → input
 - **Talking point:** some work argues that smart V2G can *reduce* degradation by keeping SoC in gentler ranges (Uddin et al. 2017). Include it as a balanced counterpoint.
 - Output: `c_deg` used in 8.B, plus a "battery health impact over 10 years" chart.
 
-### 8.D Plug-in behaviour and fleet aggregation: *"How many cars are actually available, and when?"*
-- Build an availability distribution Pr(plugged in | hour, weekday) and arrival/departure SoC distributions from open charging datasets (§11).
-- Monte Carlo: sample N synthetic vehicles → run 8.B per vehicle (or per archetype cluster to save compute) → sum.
-- **Fleet flexibility:**
-  - Power: Flex_GW(t, y) = N_EV(y) · s_V2G(y) · Pr(plugged | t) · P_discharge_max · (1 − derate)
-  - Energy: also bounded by the shareable energy per car, E_cap · (SoC_t − SoC_departure_req)
-  - The mix of app modes across owners changes the shareable energy (guaranteed-charge owners share less). Parameterise as a mode share.
-- **Optional:** k-means on charging sessions → driver archetypes (commuter, home-all-day, fleet van).
-- Paper: Lee, Li & Low 2019 (ACN-Data); Ma, Callaway & Hiskens 2013 (decentralised control of large EV populations).
-
-### 8.E EV adoption forecast to ~2036: *"How many EVs will exist in 10 years?"*
-- **Ladder:**
-  1. logistic fit to historical registrations
-  2. **Bass diffusion model**: N(t) = M · (1 − e^{−(p+q)t}) / (1 + (q/p) · e^{−(p+q)t}), fit p and q
-  3. scenario bands anchored to official scenarios (the system operator's / IEA Global EV Outlook)
-- Separate *EV stock* from *V2G-capable share* and *participation rate*. Those are three different numbers with three different drivers, so never merge them.
-- Output: `ev_stock_by_year.parquet` with columns (year, scenario, n_ev, share_v2g_capable, participation).
-- Paper: Bass 1969.
-
-### 8.F Grid impact and reliability: *"How much more reliable is the grid?"*
-Pick a metric ladder. Each step is a valid deliverable:
-1. **Peak reduction:** net demand peak with vs without fleet discharge (GW, %).
-2. **Peak-hours coverage:** the number of hours per year where the fleet could fully cover the gap above a threshold.
-3. **Renewables absorption:** the extra wind/solar the fleet could soak up when it would otherwise be curtailed.
-4. **Adequacy:** LOLE (loss-of-load expectation, h/yr) via a simplified Monte Carlo on generation availability vs demand, with/without V2G.
-5. **ELCC / equivalent firm capacity:** how much "perfect power plant" the V2G fleet is equivalent to (Garver 1966 method).
-6. **Local network:** distribution transformer overload with unmanaged charging vs smart charging vs V2G. This is a great twist: it shows V2G helps even when the grid gets more EVs.
-- Bonus: carbon (via a carbon-intensity time series), i.e. gCO₂ shifted per kWh discharged at peak.
-- Papers: Kempton & Tomić 2005b (V2G implementation, renewables); Yilmaz & Krein 2013b (V2G impacts on distribution systems); Garver 1966.
+### 8.D–8.F Fleets, EV adoption and grid impact: out of scope (roadmap)
+Removed in v0.4: we build for **one vehicle**. Fleet aggregation (many cars → GW of flexibility), the EV adoption forecast to 2036 and national grid-impact metrics (peak reduction, LOLE/ELCC) only matter once many cars are combined. They return with **ExtraEnergy for fleets**, shown in the owner view as "coming soon". (Plug-in behaviour for one car is learned by the habits model, §8.B Option B.) Section letters §8.G–I are kept so existing references still work.
 
 ### 8.G Owner economics: *"Is it worth buying?"*
 - Annual net revenue = optimiser revenue − degradation − standby losses − any fees
@@ -356,10 +335,42 @@ Pick a metric ladder. Each step is a valid deliverable:
 - Value stack options: arbitrage, V2H bill savings, frequency/capacity services (only if `response_time_s` qualifies), with policy toggles (export price, network fees).
 
 ### 8.H Sensitivity and design-space sweep: **the integration showpiece**
-- Sweep spec parameters: P_rated ∈ {3.7, 7.4, 11, 22} kW, η shift ±2 pts, cost ±50%, plus participation and price volatility, and the user target SoC.
+- Sweep spec parameters: P_rated ∈ {3.7, 7.4, 11, 22} kW, η shift ±2 pts, cost ±50%, plus price volatility and the user target SoC.
 - Tornado chart (one-at-a-time) and Sobol indices (SALib) → "what matters most?"
-- If the C++ model is exposed via pybind11, sweep **actual design parameters** (f_sw, device choice) → η curve → £ and GW. That is true hardware-ML co-design.
+- If the C++ model is exposed via pybind11, sweep **actual design parameters** (f_sw, device choice) → η curve → £. That is true hardware-ML co-design.
 - Output: `design_targets.yaml` (§6.4) + charts.
+
+### 8.I The app: ExtraEnergy (owner view + analysis view + hardware view)
+**Decision:** one **Streamlit** app (`dashboard/app.py`), pure Python, no separate frontend. It runs **locally** from the cloned repo (`streamlit run dashboard/app.py` → opens at `http://localhost:8501`) and is **deployed to Streamlit Community Cloud** from the GitHub repo for a public link. No native phone app (Flutter / React Native): too much new learning for the time, and no extra judging value.
+
+**How it works (for anyone new to apps):** Streamlit reruns the Python script from top to bottom every time a widget changes, and redraws the page. Widgets (`st.slider`, `st.radio`) return values; charts are Plotly figures passed to `st.plotly_chart`. Slow functions are wrapped in `@st.cache_data` so they only recompute when their inputs change.
+
+**Three views in one app** (tabs at the top):
+
+| View | Audience | Shows | Maps to |
+|---|---|---|---|
+| **Owner app** ("ExtraEnergy") | the customer; the "this is our product" moment | A phone-sized panel in green branding: **mode toggle** (max savings / guaranteed charge), **target-SoC slider**, "always ready" vs "ready by departure" toggle, departure time, **tonight's plan** chart (price, charge/sell bars, SoC line), **£ saved per year**, the **cost of peace of mind**, and a plain-English status line ("Selling to the grid 17:00–19:00, fully charged by 07:30") | §8.B, §8.B.1, D-b, D-c, D-m |
+| **Analysis** | judges; the data/ML/optimisation proof (§8, Tony & me) | Hardware what-if sliders, the **§1 headline sentence filled in live**, owner savings (unmanaged vs smart charging vs V2G) and payback, prices (Tony's forecast, §8.A), the **cost of peace of mind** curve (§8.B.1), the **habits model** results (§8.B Option B), and the payback tornado (§8.H) | §1, §8.A–C, §8.G–H, I-a, I-b, I-d |
+| **Hardware** | judges; the hardware track (Abdullah & Issa) | The converter spec with its `provenance` badge: ratings, efficiency-vs-load curve, grid/battery side, cost and V2G premium; later the KiCad render and the design targets sent back | §6.1, §7, I-c |
+
+**Compute rule (keeps it fast):**
+- **Precompute** anything heavy in the pipeline (forecasts, habits model, sensitivity sweeps) and save to `artefacts/`. The app only **reads** these files.
+- **Compute live** only the single-car schedule (one small LP, solves in milliseconds), so the target-SoC slider updates the £ number as you drag.
+- **Fallback:** if an artefact file is missing, the app uses built-in placeholder data and shows a "PLACEHOLDER" badge. The app must never crash because a pipeline stage hasn't run yet.
+
+**Branding:** green theme in `.streamlit/config.toml` (one place to change colours). Name and tagline from §1.
+
+**Deploying (Streamlit Community Cloud, free):** `ASSUMPTION` details to verify on the day.
+1. Push the repo to GitHub with a `requirements.txt` at the root (the cloud reads this, not `pyproject.toml`).
+2. Sign in to Streamlit Community Cloud with GitHub → "New app" → pick the repo, branch, and `dashboard/app.py`.
+3. It builds and gives a public `*.streamlit.app` URL. Every push to the branch redeploys automatically.
+4. **API keys** go in the cloud app's Secrets settings (read with `st.secrets`), never in the repo.
+5. Free apps go to sleep when unused and take a short while to wake. **Open the link a few minutes before pitching.**
+6. Put the link (and a QR code) on the final slide so judges can try it on their phones.
+
+**Fallback order on stage:** public link → local `streamlit run` on the laptop → recorded demo video.
+
+**Starter status:** a working `dashboard/app.py` exists (placeholder prices, spec read from `config/converter_spec.yaml` if present, live LP via SciPy/HiGHS, all three views). Replace the placeholder functions with artefact readers as each pipeline stage lands.
 
 ---
 
@@ -369,18 +380,15 @@ Pick a metric ladder. Each step is a valid deliverable:
 |---|---|---|---|---|
 | S0 | Config & schema | Generalist | — | `config/assumptions.yaml`, `config/converter_spec.yaml`, `shared/schema.py` |
 | S1 | Hardware spec | Abdullah / Issa | calcs, sims, BOM | updated `converter_spec.yaml` (+ `efficiency_map.csv`) |
-| S2 | Ingest & clean | Generalist | raw APIs/CSVs | `data/processed/{prices,demand,generation,ev_registrations,sessions}.parquet` |
+| S2 | Ingest & clean | Generalist | raw APIs/CSVs | `data/processed/{prices,sessions}.parquet` |
 | S3 | Price forecast | Tony | prices, features | `artefacts/forecasts/price_quantiles.parquet` |
 | S4 | Degradation | Tony / Generalist | battery params | `artefacts/degradation/c_deg.json` |
 | S5 | Single-EV optimise | Tony | S1, S3, S4, availability, app mode | `artefacts/schedules/*.parquet`, `revenue_per_vehicle.json` |
-| S6 | Adoption forecast | Generalist | ev_registrations | `artefacts/adoption/ev_stock_by_year.parquet` |
-| S7 | Fleet aggregate | Generalist | S1, S5, S6, sessions | `artefacts/fleet/flex_by_hour_year.parquet` |
-| S8 | Grid impact | Generalist / Tony | S7, demand, generation | `artefacts/grid/metrics.json` |
 | S9 | Economics | Tony | S1, S5 | `artefacts/econ/payback.json` |
-| S10 | Sensitivity & targets | Tony | S1 (ranges), S5–S9 | `config/design_targets.yaml`, `artefacts/sensitivity/*` |
-| S11 | Dashboard & headline | Generalist | everything | Streamlit app + headline sentence (§1) |
+| S10 | Sensitivity & targets | Tony | S1 (ranges), S5, S9 | `config/design_targets.yaml`, `artefacts/sensitivity/*` |
+| S11 | App & headline | Generalist | everything (reads only; live LP for the owner view) | Streamlit app (owner, analysis and hardware views), local and public URL, headline sentence (§1) |
 
-**Dependency order:** S0 → (S1 ∥ S2) → (S3, S4, S6) → S5 → (S7, S9) → S8 → S10 → S11. Orchestrate with a `Makefile` (simplest) or Snakemake/DVC (stretch).
+**Dependency order:** S0 → (S1 ∥ S2) → (S3, S4) → S5 → S9 → S10 → S11. (S6–S8, adoption, fleet and grid, were removed with the fleet scope.) Orchestrate with a `Makefile` (simplest) or Snakemake/DVC (stretch). S11 runs at every stage on placeholders, so it is never blocked.
 
 ---
 
@@ -388,12 +396,16 @@ Pick a metric ladder. Each step is a valid deliverable:
 
 ```
 v2g-hack/
-├── README.md                     # pitch, how to run, headline result
+├── README.md                     # pitch, how to run, headline result, public app link
 ├── CONTEXT.md                    # this file
-├── Makefile                      # make data | forecast | optimise | fleet | grid | econ | sweep | app | all
+├── app_ideas.md                  # branding notes
+├── Makefile                      # make data | forecast | optimise | econ | sweep | app | all
 ├── pyproject.toml                # python deps (pandas, polars, cvxpy, highspy, lightgbm, torch?, salib, streamlit, pydantic)
+├── requirements.txt              # minimal deps for Streamlit Cloud (streamlit, pandas, numpy, scipy, plotly, pyyaml)
+├── .streamlit/
+│   └── config.toml               # ExtraEnergy green theme
 ├── config/
-│   ├── assumptions.yaml          # region, currency, dt_h, years, scenarios, battery params, participation, app mode
+│   ├── assumptions.yaml          # region, currency, dt_h, years, scenarios, battery params, app mode
 │   ├── converter_spec.yaml       # §6.1 (hardware-owned)
 │   └── design_targets.yaml       # §6.4 (data-owned)
 ├── shared/
@@ -408,23 +420,23 @@ v2g-hack/
 │   ├── firmware_c/               # control loop (PI, phase-shift modulator, mode state machine) + host test harness
 │   ├── sim/                      # ltspice/ ngspice/ plecs/ netlists and waveform exports
 │   ├── bom/                      # bom.csv (part, mfr, mpn, qty, unit_cost, supplier, link)
-│   └── cad/                      # kicad project, renders/*.png
+│   └── cad/                      # kicad project, renders/*.png (shown in the hardware view)
 ├── src/v2g/
 │   ├── ingest/                   # one loader per source → standard schema
 │   ├── forecast/                 # baselines.py, gbm.py, deep.py, foundation.py, evaluate.py
 │   ├── degradation/              # linear.py, semi_empirical.py, rainflow.py
 │   ├── optimise/                 # rule_based.py, lp.py, mpc.py, modes.py (app mode registry), stochastic.py, rl/ (stretch)
-│   ├── fleet/                    # availability.py, archetypes.py, aggregate.py
-│   ├── adoption/                 # logistic.py, bass.py, scenarios.py
-│   ├── grid/                     # peak.py, curtailment.py, adequacy.py (LOLE/ELCC), local_network.py
 │   ├── economics/                # revenue_stack.py, payback.py
 │   └── sensitivity/              # tornado.py, sobol.py, design_sweep.py
-├── dashboard/app.py              # Streamlit: spec panel → app mode → owner £ → fleet GW → grid → 2036 slider
+├── dashboard/
+│   └── app.py                    # Streamlit: Owner app + Analysis + Hardware views (§8.I)
 ├── notebooks/                    # EDA only; no logic that the pipeline depends on
 ├── data/{raw,processed}/         # gitignored
-├── artefacts/                    # gitignored outputs per stage
+├── artefacts/                    # gitignored outputs per stage (commit a small cached copy for the cloud app)
 └── tests/                        # §12 checks
 ```
+
+Note: `artefacts/` is gitignored, but the cloud app can only see what's in the repo. Before the final deploy, commit a small frozen copy (e.g. `artefacts_frozen/`) for the app to read, or the public link falls back to placeholders.
 
 ---
 
@@ -434,12 +446,9 @@ v2g-hack/
 |---|---|
 | Wholesale / day-ahead prices | GB: Elexon Insights/BMRS, N2EX/EPEX (some paid). EU: ENTSO-E Transparency Platform (free API key). US: CAISO OASIS, ERCOT, PJM, EIA. |
 | Retail dynamic tariff (owner view) | Time-of-use or agile-style tariff APIs where public (e.g. Octopus Agile in GB) |
-| Demand & generation (wind/solar) | System operator data portals (e.g. NESO in GB), ENTSO-E, EIA-930 (US) |
 | Carbon intensity | Carbon Intensity API (GB), Electricity Maps (limited free tier) |
-| EV registrations / stock | Government vehicle licensing statistics (e.g. DfT in GB), IEA Global EV Outlook data explorer, EAFO (EU) |
 | Charging sessions / plug-in behaviour | **ACN-Data** (Caltech), ElaadNL open data (NL), UK trials (Electric Nation, Electric Chargepoint Analysis), NREL EVI-Pro (US) |
-| Scenarios | National system operator Future Energy Scenarios, IEA scenarios |
-| Battery parameters | Typical pack 50–80 kWh; LFP vs NMC cycle-life from literature (§14) |
+| Battery parameters | Typical pack 50–80 kWh; LFP vs NMC cycle-life from literature (§15) |
 | Component costs | Distributor catalogues (Digi-Key, Mouser, Farnell, RS) |
 
 **Fallback:** if an API key is slow to obtain, commit a small cached CSV. Synthetic data is acceptable for the pipeline smoke test. Label it on the dashboard.
@@ -449,7 +458,7 @@ v2g-hack/
 ## 12. Consistency checks (generate as tests; trivial but they keep the chain honest)
 
 - [ ] `converter_spec.yaml` validates against the schema. 0 < η < 1 everywhere. Load fractions are increasing.
-- [ ] Sign convention holds everywhere (+ = charging). The fleet "discharge GW" is reported as a positive *support* number, converted explicitly in one function.
+- [ ] Sign convention holds everywhere (+ = charging).
 - [ ] Energy balance per vehicle: ΔSoC · E_cap == Σ(η_ch · P_ch − P_dis / η_dis) · Δt, to within 1e-6.
 - [ ] SoC is always within [SoC_min, SoC_max]. Departure SoC ≥ requirement in **100%** of schedules.
 - [ ] No simultaneous charge and discharge in any period, even with negative prices.
@@ -457,34 +466,34 @@ v2g-hack/
 - [ ] App modes: in guaranteed-charge mode, SoC ≥ the user's target whenever the car is needed, in **100%** of schedules. On identical inputs, max-savings savings ≥ guaranteed-charge savings (it has fewer constraints). Raising the target never increases savings.
 - [ ] Price units: an ingest test checks the median price is in a plausible currency/MWh range (catches p/kWh vs £/MWh mistakes).
 - [ ] Time index: no gaps or duplicates. DST days have the right number of periods.
-- [ ] Fleet flex ≤ N_EV · P_discharge_max (physical ceiling). Fleet energy ≤ Σ shareable battery energy.
-- [ ] Adoption: n_ev is monotonic in the base scenario, and share and participation are both in [0, 1].
 - [ ] Software uplift is computed on identical vehicles, availability and price periods for the learned and rule-based schedules. Both respect the same departure-SoC constraint. Revenues sit in the order: rule-based ≤ learned ≤ perfect foresight.
 - [ ] Every number in the headline sentence traces to a single artefact file (no manual typing).
-- [ ] Changing `p_discharge_max_kw` in the spec changes the fleet GW proportionally (end-to-end wiring test).
+- [ ] Changing `p_discharge_max_kw` in the spec changes the owner £/yr and the kWh sold back (end-to-end wiring test).
+- [ ] **App smoke test:** the app starts with no artefacts present (placeholders only) and with all artefacts present, without errors. Use Streamlit's `AppTest` (`from streamlit.testing.v1 import AppTest`) in `tests/test_app.py`, switching all three views and both modes.
+- [ ] `requirements.txt` installs cleanly in a fresh virtual environment (that's what the cloud does).
 
 ---
 
 ## 13. Milestones (relative hours; adjust once Q1 is answered)
 
-| Time | Hardware | Data | Joint |
-|---|---|---|---|
-| H0–H1 | Topology shortlist | Schema + placeholder spec, repo skeleton | **Freeze `converter_spec.yaml` field names** |
-| H1–H4 | Hand-calc ratings + first η curve | Ingest prices + sessions; rule-based + LP optimiser on placeholders | — |
-| H4 | **Spec v0.2 (hand_calc) delivered** | End-to-end pipeline runs on placeholder data | Smoke test: the headline sentence fills in |
-| H4–H12 | C++ model / sim / BOM / C control loop | Forecasting ladder, degradation, adoption, fleet, app modes | — |
-| H12 | **Spec v0.3 (simulation + BOM)** | Grid metrics + economics | Re-run, compare v0.2 vs v0.3 numbers |
-| H12–H20 | KiCad render, LV demo (optional) | Sensitivity sweep → `design_targets.yaml`; dashboard | Hardware reacts to targets (co-design story) |
-| Last 4 h | Polish visuals | Freeze numbers | Pitch, rehearse, record a backup demo video |
+| Time | Hardware | Data | App | Joint |
+|---|---|---|---|---|
+| H0–H1 | Topology shortlist | Schema + placeholder spec, repo skeleton | Starter app runs locally on placeholders | **Freeze `converter_spec.yaml` field names** |
+| H1–H4 | Hand-calc ratings + first η curve | Ingest prices + sessions; rule-based + LP optimiser on placeholders | **First deploy to Streamlit Cloud** (catch deploy problems early) | — |
+| H4 | **Spec v0.2 (hand_calc) delivered** | End-to-end pipeline runs on placeholder data | App reads the real spec file | Smoke test: the headline sentence fills in |
+| H4–H12 | C++ model / sim / BOM / C control loop | Forecasting ladder, degradation, habits model, app modes | Swap placeholders for artefact readers, one by one | — |
+| H12 | **Spec v0.3 (simulation + BOM)** | Economics | Hardware view shows v0.2 vs v0.3 | Re-run, compare v0.2 vs v0.3 numbers |
+| H12–H20 | KiCad render, LV demo (optional) | Sensitivity sweep → `design_targets.yaml` | Tornado in analysis view, render in hardware view; polish owner view | Hardware reacts to targets (co-design story) |
+| Last 4 h | Polish visuals | Freeze numbers | Commit frozen artefacts, final deploy, QR code on slide | Pitch, rehearse, record a backup demo video |
 
 **Cut lines if you run behind** (drop from the bottom up):
 1. RL
-2. LOLE/ELCC (keep peak reduction)
-3. deep forecasting models (keep LightGBM)
-4. physical demo (keep the render)
-5. C++ pybind sweep (keep CSV hand-off)
+2. deep forecasting models (keep LightGBM)
+3. physical demo (keep the render)
+4. C++ pybind sweep (keep CSV hand-off)
+5. public deploy (keep the local app + video)
 
-**Never cut:** the spec contract, the LP optimiser, fleet aggregation, the headline sentence.
+**Never cut:** the spec contract, the LP optimiser, the headline sentence, the owner view.
 
 ---
 
@@ -507,10 +516,6 @@ v2g-hack/
 - D-c Optimal weekly schedule plot (price, SoC, charge/discharge bars)
 - D-d Owner £/yr and payback, with and without degradation
 - D-e Driver archetypes from charging data (clustering)
-- D-f EV stock forecast to 2036 with scenario bands
-- D-g National flexibility (GW / GWh) by hour-of-day and year
-- D-h Grid reliability: peak reduction → LOLE → ELCC
-- D-i Local transformer overload: unmanaged vs smart vs V2G
 - D-j Carbon shifted per year
 - D-k LP vs MPC vs RL comparison
 - D-l Policy toggle: what happens if export fees change ("double fee" scenario)
@@ -518,9 +523,10 @@ v2g-hack/
 
 **Integrated (highest judging value)**
 - I-a **Spec → system headline number** (§1)
-- I-b **Tornado chart: which hardware parameter moves the grid the most?**
+- I-b **Tornado chart: which hardware parameter moves the payback the most?**
 - I-c Design-target feedback loop shown before/after (v0.2 → v0.3 spec)
-- I-d Interactive dashboard: drag P_rated/η/cost and pick the app mode → see owner £, payback, fleet GW, reliability update
+- I-d Interactive dashboard: drag P_rated/η/cost and pick the app mode → see owner £, payback and kWh sold back update
+- I-e **ExtraEnergy owner view** as the product demo, plus a **public link + QR code** judges can open on their phones (§8.I)
 
 ---
 
@@ -550,7 +556,6 @@ v2g-hack/
 
 **Optimisation and control**
 - Sortomme, E. & El-Sharkawi, M. A. (2011). *Optimal charging strategies for unidirectional vehicle-to-grid.* IEEE Trans. Smart Grid; and (2012) *Optimal scheduling of vehicle-to-grid energy and ancillary services.*
-- Ma, Z., Callaway, D. S. & Hiskens, I. A. (2013). *Decentralized charging control of large populations of plug-in electric vehicles.* IEEE Trans. Control Systems Technology.
 - Orfanoudakis et al. (2024). *EV2Gym: A flexible V2G simulator for EV smart charging research and benchmarking.*
 
 **Battery degradation**
@@ -558,9 +563,7 @@ v2g-hack/
 - Xu, B., Oudalov, A., Ulbig, A., Andersson, G. & Kirschen, D. (2018). *Modeling of lithium-ion battery degradation for cell life assessment.* IEEE Trans. Smart Grid.
 - Uddin, K. et al. (2017). *On the possibility of extending the lifetime of lithium-ion batteries through optimal V2G facilitated by an integrated vehicle and smart-grid system.* Energy.
 
-**Adoption and reliability**
-- Bass, F. M. (1969). *A new product growth model for consumer durables.* Management Science.
-- Garver, L. L. (1966). *Effective load carrying capability of generating units.* IEEE Trans. Power Apparatus and Systems.
+**Charging data**
 - Lee, Z. J., Li, T. & Low, S. H. (2019). *ACN-Data: Analysis and applications of an open EV charging dataset.* ACM e-Energy.
 
 **Recent context (2026)**
@@ -575,12 +578,15 @@ v2g-hack/
 
 | Risk | Mitigation |
 |---|---|
-| Integration happens too late | Placeholder spec + end-to-end run by H4. The contract is frozen at H1. |
+| Integration happens too late | Placeholder spec + end-to-end run by H4. The contract is frozen at H1. The app runs on placeholders from H0. |
 | Hardware numbers arrive in mismatched units or format | Pydantic validation on load. `provenance` field. One owner per file. |
 | Data API access delays | Cached CSVs; synthetic fallback, labelled |
-| Over-claiming grid impact | Separate stock vs capability vs participation. Show scenario bands. State assumptions on the dashboard. |
 | Forecast model rabbit-hole | LightGBM is "good enough"; judge on decision value, not leaderboard MAE |
 | Optimiser exploits model artefacts (negative prices, simultaneous charge/discharge) | MILP/complementarity constraint + tests in §12 |
 | Max-savings mode leaves a driver short after an unpredicted trip | Hard safety floor (next trip + reserve); guaranteed-charge mode as the default; log near-misses |
+| Cloud deploy fails late (missing dependency, huge files) | Deploy by H4 and redeploy often; keep `requirements.txt` minimal; no heavy ML libraries in the app (it only reads artefacts) |
+| Public app is asleep or slow when judges open it | Open it a few minutes before pitching; local app as the live fallback; recorded video as the last resort |
+| API keys leak through the public repo | Keys only in Streamlit Secrets / a local `.streamlit/secrets.toml` that is gitignored |
+| App crashes on stage because an artefact is missing | Every reader falls back to placeholders with a visible badge; `AppTest` smoke test in §12 |
 | Safety (physical build) | Low-voltage only |
-| Pitch lacks a single story | The §1 headline sentence + the tornado chart are the spine |
+| Pitch lacks a single story | The §1 headline sentence + the tornado chart are the spine; the owner view makes it tangible |

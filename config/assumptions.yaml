@@ -1,33 +1,35 @@
-region: gb
-currency: gbp
-currency_symbol: "£"
-settlement_period_minutes: 30
-dt_h: 0.5
-years: [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036]
-scenarios:
-  base:
-    ev_stock_2026: 2000000
-    ev_stock_2036: 36000000
-  low:
-    ev_stock_2026: 1500000
-    ev_stock_2036: 25000000
-  high:
-    ev_stock_2026: 3000000
-    ev_stock_2036: 45000000
+# S0 global assumptions for the ExtraEnergy app (CONTEXT.md §6, §8.I).
+# The app reads this file; its built-in defaults are only a fallback if the file is missing.
+# Values marked ASSUMPTION are placeholders to be replaced. Validated by shared/schema.py.
+# Sections: app (battery, owner, tariff, optimiser), economics policy toggles (price_policy),
+# and Tony's price-forecast (forecast:, S3) and data-ingest (ingest:, S2) settings.
+region: GB
+currency: GBP
+dt_h: 0.5                         # 30-min settlement periods; must divide a day
+
 battery:
-  capacity_kwh: 60.0
-  soc_min: 0.2
-  soc_max: 0.9
-  max_cycles: 3000
-  degradation_cost_per_kwh: 0.08
-participation:
-  base: 0.2
-  low: 0.1
-  high: 0.4
+  e_cap_kwh: 60.0                 # ASSUMPTION typical mid-size pack
+  reserve_kwh: 6.0                # ASSUMPTION safety reserve on top of the next trip (max savings)
+  soc_min: 0.20                   # V2G floor: never discharge below this
+  soc_max: 0.90                   # charge limit
+  c_deg_per_mwh: 20.0             # ASSUMPTION battery wear per MWh of throughput (= 0.02 £/kWh), §8.C step 1
+
+owner:
+  plug_days_per_year: 300         # ASSUMPTION nights a year the car is plugged in overnight
+
+tariff:
+  export_price_fraction: 0.85     # ASSUMPTION export price = 85 % of the import price
+
+optimiser:
+  mode: guaranteed_charge         # app default: max_savings | guaranteed_charge (§8.B.1)
+  target_soc: 0.60                # guaranteed_charge: the owner's minimum (fraction)
+
+# Economics policy toggles (§4, D-l). Not yet read by the app.
 price_policy:
   import_fee_multiplier: 1.0
   export_fee_multiplier: 0.9
   double_fee_policy: false
+
 forecast:
   series: elexon_mid
   issue_local_time: "10:00"

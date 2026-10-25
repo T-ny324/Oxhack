@@ -1,10 +1,19 @@
-PYTHON ?= python3
+# ExtraEnergy pipeline (CONTEXT.md §9). Run from the repo root (see README).
+#   make app            run the Streamlit app locally (http://localhost:8501)
+#   make test           run all tests (§12 checks, forecasts, ingest, app)
+#   make data-prices    / forecast-naive / forecast-lear ... : Tony's S2/S3 stages (below)
+# Stages without a module yet (degradation, econ, sweep) print their TODO.
+# Uses .venv/bin/python if a .venv exists, else python3 (override: make PYTHON=...).
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: install format lint test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke forecast-validate forecast-lear-x forecast-lear-x-smoke notebooks optimise-backtest optimise-backtest-smoke all
+.PHONY: install install-app format lint app test data data-prices data-exog forecast-naive forecast-naive-smoke forecast-lear forecast-lear-smoke forecast-validate forecast-lear-x forecast-lear-x-smoke notebooks optimise-backtest optimise-backtest-smoke degradation econ sweep all
 
-install:
+install:            ## full pipeline + dev tools (pyproject.toml)
 	$(PYTHON) -m pip install -U pip
 	$(PYTHON) -m pip install -e ".[dev]"
+
+install-app:        ## just what the Streamlit app needs (requirements.txt) + pytest
+	$(PYTHON) -m pip install -r requirements.txt pytest
 
 format:
 	$(PYTHON) -m black src tests shared dashboard
@@ -12,7 +21,10 @@ format:
 lint:
 	$(PYTHON) -m ruff check src tests shared dashboard
 
-test:
+app:                ## S11 App & headline
+	$(PYTHON) -m streamlit run dashboard/app.py
+
+test:               ## all tests
 	$(PYTHON) -m pytest tests -q
 
 # --- Data ingest (stage S2). Outputs go to data/processed/, raw cache to data/raw/.
@@ -70,5 +82,15 @@ optimise-backtest-smoke:
 forecast-naive-smoke:
 	$(PYTHON) -m v2g.forecast.baselines --window smoke --out artefacts/forecasts/price_quantiles_smoke.parquet
 	$(PYTHON) -m v2g.forecast.evaluate --window smoke --forecasts artefacts/forecasts/price_quantiles_smoke.parquet --out artefacts/forecasts/eval_naive_smoke.csv
+
+# --- Stages without a module yet (CONTEXT.md §9)
+degradation:        ## S4 Degradation
+	@echo "TODO(S4): python -m v2g.degradation.linear -> artefacts/degradation/c_deg.json"
+
+econ:               ## S9 Economics
+	@echo "TODO(S9): python -m v2g.economics.payback -> artefacts/econ/payback.json"
+
+sweep:              ## S10 Sensitivity & design targets
+	@echo "TODO(S10): python -m v2g.sensitivity.design_sweep -> config/design_targets.yaml"
 
 all: test

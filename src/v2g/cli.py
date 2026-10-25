@@ -1,3 +1,4 @@
+"""Pipeline orchestration entry point (CONTEXT.md §9). TODO: call each stage's module."""
 from __future__ import annotations
 
 import argparse
@@ -5,7 +6,7 @@ import argparse
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="V2G hackathon orchestration")
-    parser.add_argument("--stage", choices=["ingest", "forecast", "optimise", "fleet", "grid", "econ", "sweep"], default="forecast")
+    parser.add_argument("--stage", choices=["ingest", "forecast", "degradation", "optimise", "econ", "sweep"], default="forecast")
     args = parser.parse_args()
     print(f"V2G stage selected: {args.stage}")
 

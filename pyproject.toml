@@ -1,9 +1,9 @@
 [project]
 name = "oxhack-v2g"
 version = "0.1.0"
-description = "V2G hackathon pipeline and demo scaffold"
+description = "ExtraEnergy V2G: full pipeline dependencies (the cloud app only uses requirements.txt)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "pandas>=2.0",
   "numpy>=1.26",
@@ -11,7 +11,8 @@ dependencies = [
   "requests>=2.31",
   "pyyaml>=6.0",
   "pydantic>=2.0",
-  "streamlit>=1.30",
+  "streamlit>=1.66",
+  "plotly",
   "cvxpy>=1.0",
   "scipy>=1.11",
   "scikit-learn>=1.5",
@@ -35,4 +36,4 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "."]
+pythonpath = ["src", "."]       # so tests import `shared` and `v2g` without installing
