@@ -42,3 +42,10 @@ forecast:
   quantile_history_days: 56
   # Lead-time bucket edges in hours, left-closed: [0,6) [6,12) [12,24) [24,40).
   lead_buckets_h: [0, 6, 12, 24, 40]
+  lear:
+    calibration_windows_days: [56, 84, 364, 728]
+    recalibrate_every_days: 1          # >1 reuses the last fit on the days in between (faster smoke runs)
+    impute_max_gap_periods: 8          # linear interpolation of short gaps, for features and training targets only
+    lambda_selection: aic              # aic | bic | cv
+    n_jobs: -1
+    write_component_models: false      # also write lear_w56, lear_w84, ... for diagnostics

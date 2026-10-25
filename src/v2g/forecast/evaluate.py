@@ -19,6 +19,14 @@ reported overall, by lead-time bucket and by block (A = same local day as the
 issue, B = next local day). The output CSV is long: one row per
 (model, slice_type, slice). Model-agnostic: LEAR or LightGBM rows in the same
 parquet are scored the same way.
+
+Diebold-Mariano (multivariate version of Lago et al. 2021): for every
+non-benchmark model and each naive benchmark present, the loss differential
+per issue is the mean over that issue's common targets of |e_benchmark| -
+|e_model|. The statistic is mean(d) / (sd(d) / sqrt(N)) with the sample
+standard deviation over issues, and the one-sided p-value tests the
+alternative "the model is better than the benchmark" (positive statistic,
+small p-value). Written next to the eval CSV as ``<name>_dm.csv``.
 """
 
 from __future__ import annotations
@@ -29,6 +37,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
 from shared.schema import ForecastConfig
 from v2g.forecast.config import (
@@ -68,6 +77,9 @@ METRIC_COLUMNS = [
     "pinball",
     "coverage",
 ]
+
+DM_BENCHMARKS = ("naive_daily", "naive_weekly")
+DM_COLUMNS = ["model", "benchmark", "n_issues", "mean_loss_diff", "dm_stat", "p_value"]
 
 
 def pinball_loss(actual: np.ndarray, forecast: np.ndarray, q: float) -> float:
@@ -157,7 +169,11 @@ def score(
     forecasts: pd.DataFrame, prices: pd.Series, cfg: ForecastConfig
 ) -> pd.DataFrame:
     """Long table of metrics per model: overall, per lead bucket, per block."""
-    df = prepare(forecasts, prices, cfg)
+    return score_prepared(prepare(forecasts, prices, cfg))
+
+
+def score_prepared(df: pd.DataFrame) -> pd.DataFrame:
+    """As :func:`score`, on the output of :func:`prepare`."""
     rows = []
     for model, group in df.groupby("model", sort=True):
         rows.append(_metrics(group, model, "overall", "all"))
@@ -178,6 +194,66 @@ def score(
         .drop(columns=["_o", "_b"])
         .reset_index(drop=True)
     )
+
+
+def diebold_mariano(prepared: pd.DataFrame, model: str, benchmark: str) -> dict:
+    """One-sided multivariate DM test that ``model`` beats ``benchmark`` (see module docstring)."""
+    keys = ["series", "issue_time_utc", "target_time_utc"]
+    a = prepared.loc[prepared["model"] == model, [*keys, "actual", "p50"]]
+    b = prepared.loc[prepared["model"] == benchmark, [*keys, "p50"]].rename(
+        columns={"p50": "p50_benchmark"}
+    )
+    both = a.merge(b, on=keys, how="inner")
+    if both.empty:
+        raise ValueError(f"no common rows between {model} and {benchmark}")
+    both["d"] = (both["actual"] - both["p50_benchmark"]).abs() - (
+        both["actual"] - both["p50"]
+    ).abs()
+    per_issue = both.groupby("issue_time_utc")["d"].mean()
+    n = len(per_issue)
+    mean = float(per_issue.mean())
+    sd = float(per_issue.std(ddof=1)) if n > 1 else float("nan")
+    stat = mean / (sd / np.sqrt(n)) if sd and sd > 0 else float("nan")
+    p_value = float(1.0 - norm.cdf(stat)) if np.isfinite(stat) else float("nan")
+    return {
+        "model": model,
+        "benchmark": benchmark,
+        "n_issues": n,
+        "mean_loss_diff": mean,
+        "dm_stat": stat,
+        "p_value": p_value,
+    }
+
+
+def dm_table(
+    prepared: pd.DataFrame, benchmarks: tuple[str, ...] = DM_BENCHMARKS
+) -> pd.DataFrame:
+    """DM results for every non-benchmark model against each benchmark present."""
+    present = set(prepared["model"].unique())
+    rows = [
+        diebold_mariano(prepared, model, benchmark)
+        for model in sorted(present - set(benchmarks))
+        for benchmark in benchmarks
+        if benchmark in present
+    ]
+    return pd.DataFrame(rows, columns=DM_COLUMNS)
+
+
+def format_dm_table(dm: pd.DataFrame) -> str:
+    if dm.empty:
+        return "(no model to compare against the naive benchmarks)"
+    show = dm.copy()
+    show["mean_loss_diff"] = show["mean_loss_diff"].map(lambda v: f"{v:+.2f} £/MWh")
+    show["dm_stat"] = show["dm_stat"].map(lambda v: f"{v:.2f}")
+    show["p_value"] = show["p_value"].map(
+        lambda v: f"{v:.4f}" if v >= 1e-4 else f"{v:.1e}"
+    )
+    return show.to_string(index=False)
+
+
+def dm_output_path(out_path: Path | str) -> Path:
+    out_path = Path(out_path)
+    return out_path.with_name(out_path.stem + "_dm" + out_path.suffix)
 
 
 def format_table(scores: pd.DataFrame) -> str:
@@ -249,12 +325,18 @@ def run(
             f"no forecasts issued between {start_date} and {end_date} in {forecasts_path}"
         )
     prices = load_prices(prices_path)
-    scores = score(forecasts, prices, cfg)
+    prepared = prepare(forecasts, prices, cfg)
+    scores = score_prepared(prepared)
+    dm = dm_table(prepared)
     if out_path is not None:
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         scores.to_csv(out_path, index=False)
         log.info("Wrote %s", out_path)
+        if not dm.empty:
+            dm.to_csv(dm_output_path(out_path), index=False)
+            log.info("Wrote %s", dm_output_path(out_path))
+    scores.attrs["dm"] = dm
     return scores
 
 
@@ -308,6 +390,13 @@ def main(argv: list[str] | None = None) -> None:
     )
     print(format_table(scores))
     print(f"written to {args.out}")
+    dm = scores.attrs.get("dm")
+    if dm is not None and not dm.empty:
+        print(
+            "\nDiebold-Mariano (one-sided, H1: model beats benchmark; d = |e_benchmark| - |e_model| per issue):"
+        )
+        print(format_dm_table(dm))
+        print(f"written to {dm_output_path(args.out)}")
     if args.show_issue:
         table = show_issue(
             load_forecasts(args.forecasts, model=models),
