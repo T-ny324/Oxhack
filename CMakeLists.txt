@@ -14,11 +14,11 @@ project(oxhack C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 pico_sdk_init()
 add_executable(oxhack main.c src/wifi.c src/mqtt_client.c src/converter.c src/power_stage.c
-    src/dummy_data.c src/scheduler.c src/headline.c)
+    )
 target_include_directories(oxhack PRIVATE "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(oxhack PRIVATE pico_stdlib pico_cyw43_arch_lwip_poll pico_lwip_mqtt hardware_pwm hardware_clocks)
 target_compile_definitions(oxhack PRIVATE
-    MQTT_BROKER_HOST=\"test.mosquitto.org\"
+    MQTT_BROKER_HOST=\"broker.emqx.io\"
     V2G_TOPIC_PREFIX=\"v2g/oxhack-4000\"
     MQTT_CLIENT_ID=\"oxhack-pico2w-4000\"
 )
